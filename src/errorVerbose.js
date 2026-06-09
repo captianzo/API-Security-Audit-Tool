@@ -53,6 +53,7 @@ export async function checkVerboseErrors(url) {
 					if (body.includes(errMsg.pattern)) {
 						// console.log(`Verbose error! Information leak caused due to ${errMsg}`);
 						result.push({
+							endpoint: url,
 							pattern: errMsg.pattern,
 							severity: errMsg.severity
 						});
@@ -61,8 +62,9 @@ export async function checkVerboseErrors(url) {
 	
 				for (const regexIndicator of errorRegexIndicators)
 					if (regexIndicator.pattern.test(body)) {
-						// console.log('Verbose error! Information leak caused due to js references');
+
 						result.push({
+							endpoint: url,
 							pattern: regexIndicator.pattern.toString(),
 							severity: regexIndicator.severity
 						});
@@ -73,5 +75,4 @@ export async function checkVerboseErrors(url) {
 	
 		}).on('error', reject);
 	})
-
 }

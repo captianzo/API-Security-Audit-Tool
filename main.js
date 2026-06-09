@@ -1,6 +1,7 @@
 import { checkVerboseErrors } from './src/errorVerbose.js';
 import { checkHeaders } from './src/missingHeaders.js';
 import { checkCorsMisconfig } from './src/corsMisconfig.js';
+import { checkMethodExposure } from './src/httpMethodsExposure.js';
 
 const inputUrl = process.argv[2];
 
@@ -21,13 +22,15 @@ async function main(url) {
 	const result = [
 		checkHeaders(url),
 		checkVerboseErrors(url),
-		checkCorsMisconfig(url)
+		checkCorsMisconfig(url),
+		checkMethodExposure(url)
 	];
 
 	Promise.all(result).then(resolvedResult => {
 		console.log('\nREQUEST HEADERS SECURITY REPORT\n\n', resolvedResult[0]);
 		console.log('\nVERBOSE ERROR SECURITY REPORT\n\n', resolvedResult[1]);
 		console.log('\nCORS MISCONFIGURATION SECURITY REPORT\n\n', resolvedResult[2]);
+		console.log('\nHTTP METHODS EXPOSURE SECURITY REPORT\n\n', resolvedResult[3]);
 	})
 	.catch(err => {
 		console.error(err);

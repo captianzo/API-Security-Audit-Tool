@@ -1,5 +1,3 @@
-import { error } from 'node:console';
-import { stat } from 'node:fs';
 import https from 'node:https';
 
 function generateTestURL(url) {
