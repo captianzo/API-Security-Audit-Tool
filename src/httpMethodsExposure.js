@@ -1,4 +1,4 @@
-import http from 'node:https';
+import https from 'node:https';
 
 function makeOptionsRequest(url) {
 
@@ -9,7 +9,7 @@ function makeOptionsRequest(url) {
 			method: 'OPTIONS'
 		}
 
-		const req = http.request(options, (res) => {
+		const req = https.request(options, (res) => {
 
 			const findings = [];
 			const resultHeaders = res.headers;
@@ -60,7 +60,7 @@ function makeTraceRequest(url) {
 			method: 'TRACE'
 		}
 
-		const req = http.request(options, (res) => {
+		const req = https.request(options, (res) => {
 			if (res.statusCode === 200) {
 				resolve({
 					endpoint: url.href,

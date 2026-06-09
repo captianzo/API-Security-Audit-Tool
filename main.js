@@ -2,6 +2,8 @@ import { checkVerboseErrors } from './src/errorVerbose.js';
 import { checkHeaders } from './src/missingHeaders.js';
 import { checkCorsMisconfig } from './src/corsMisconfig.js';
 import { checkMethodExposure } from './src/httpMethodsExposure.js';
+import { makeRequest } from './src/missingAuthDetection.js';
+import { collectEndpoints } from './src/endpointCollection.js';
 
 const inputUrl = process.argv[2];
 
@@ -18,12 +20,16 @@ if (url.protocol !== 'https:') {
 	process.exit(1);
 }
 
+
 async function main(url) {
+	const inputEndpointsForAuthCheck = await collectEndpoints();
+
 	const result = [
 		checkHeaders(url),
 		checkVerboseErrors(url),
 		checkCorsMisconfig(url),
-		checkMethodExposure(url)
+		checkMethodExposure(url),
+		makeRequest(inputEndpointsForAuthCheck)
 	];
 
 	Promise.all(result).then(resolvedResult => {
@@ -31,6 +37,7 @@ async function main(url) {
 		console.log('\nVERBOSE ERROR SECURITY REPORT\n\n', resolvedResult[1]);
 		console.log('\nCORS MISCONFIGURATION SECURITY REPORT\n\n', resolvedResult[2]);
 		console.log('\nHTTP METHODS EXPOSURE SECURITY REPORT\n\n', resolvedResult[3]);
+		console.log('\nMISSING AUTHENTICATION ON ENDPOINTS SECURITY REPORT\n\n', resolvedResult[4]);
 	})
 	.catch(err => {
 		console.error(err);

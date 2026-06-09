@@ -47,30 +47,35 @@ export async function checkVerboseErrors(url) {
 	
 			res.on('end', () => {
 				const body = Buffer.concat(chunks).toString();
-				// console.log(body);
-	
-				for (const errMsg of errorIndicators) {
-					if (body.includes(errMsg.pattern)) {
-						// console.log(`Verbose error! Information leak caused due to ${errMsg}`);
-						result.push({
-							endpoint: url,
-							pattern: errMsg.pattern,
-							severity: errMsg.severity
-						});
+
+				if (res.statusCode >= 400 && res.statusCode <= 599){
+					for (const errMsg of errorIndicators) {
+						if (body.includes(errMsg.pattern)) {
+							// console.log(`Verbose error! Information leak caused due to ${errMsg}`);
+							result.push({
+								endpoint: url,
+								pattern: errMsg.pattern,
+								severity: errMsg.severity
+							});
+						}
 					}
+		
+					for (const regexIndicator of errorRegexIndicators)
+						if (regexIndicator.pattern.test(body)) {
+	
+							result.push({
+								endpoint: url,
+								pattern: regexIndicator.pattern.toString(),
+								severity: regexIndicator.severity
+							});
+						}
+		
+					resolve(result);
+				}
+				else{
+					resolve([]);
 				}
 	
-				for (const regexIndicator of errorRegexIndicators)
-					if (regexIndicator.pattern.test(body)) {
-
-						result.push({
-							endpoint: url,
-							pattern: regexIndicator.pattern.toString(),
-							severity: regexIndicator.severity
-						});
-					}
-	
-				resolve(result);
 			})
 	
 		}).on('error', reject);
