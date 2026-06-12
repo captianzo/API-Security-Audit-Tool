@@ -21,8 +21,6 @@ export async function checkVerboseErrors(url) {
 			{ pattern: 'syntax error', severity: 'Medium-High' },
 			{ pattern: 'ORA-', severity: 'High' },
 			{ pattern: 'pg_', severity: 'Medium-High' },
-			{ pattern: 'table ', severity: 'Medium' },
-			{ pattern: 'column ', severity: 'Medium' },
 	
 			// Internal paths
 			{ pattern: '/home/', severity: 'Medium' },
