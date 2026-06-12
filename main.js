@@ -4,6 +4,7 @@ import { checkCorsMisconfig } from './src/corsMisconfig.js';
 import { checkMethodExposure } from './src/httpMethodsExposure.js';
 import { makeRequest } from './src/missingAuthDetection.js';
 import { collectEndpoints } from './src/endpointCollection.js';
+import { requestHandler } from './src/rateLimitCheck.js';
 
 const inputUrl = process.argv[2];
 
@@ -24,20 +25,31 @@ if (url.protocol !== 'https:') {
 async function main(url) {
 	const inputEndpointsForAuthCheck = await collectEndpoints();
 
-	const result = [
-		checkHeaders(url),
-		checkVerboseErrors(url),
-		checkCorsMisconfig(url),
-		checkMethodExposure(url),
-		makeRequest(inputEndpointsForAuthCheck)
-	];
+	const result = {
+		'RESPONSE HEADERS': checkHeaders(url),
+		'VERBOSE ERROR': checkVerboseErrors(url),
+		'CORS MISCONFIGURATION': checkCorsMisconfig(url),
+		'HTTP METHODS EXPOSURE': checkMethodExposure(url),
+		'MISSING AUTHENTICATION ON ENDPOINTS': makeRequest(inputEndpointsForAuthCheck),
+		'MISSING RATE LIMITING': requestHandler(url)
+	};
 
-	Promise.all(result).then(resolvedResult => {
-		console.log('\nREQUEST HEADERS SECURITY REPORT\n\n', resolvedResult[0]);
-		console.log('\nVERBOSE ERROR SECURITY REPORT\n\n', resolvedResult[1]);
-		console.log('\nCORS MISCONFIGURATION SECURITY REPORT\n\n', resolvedResult[2]);
-		console.log('\nHTTP METHODS EXPOSURE SECURITY REPORT\n\n', resolvedResult[3]);
-		console.log('\nMISSING AUTHENTICATION ON ENDPOINTS SECURITY REPORT\n\n', resolvedResult[4]);
+	const resultCheckNames = Object.keys(result);
+	const resultPromises = Object.values(result);
+
+	Promise.allSettled(resultPromises).then(resolvedResult => {
+		for (let i = 0; i < resultCheckNames.length; i++){
+			if (resolvedResult[i].value === null){
+				console.log(resultCheckNames[i], "\n", []);
+				continue;
+			}
+			if (resolvedResult[i].status === 'rejected'){
+				console.log('\nERROR PERFORMING CHECK FOR', resultCheckNames[i]);
+			}
+			else {
+				console.log(resultCheckNames[i], "\n", resolvedResult[i].value);
+			}
+		}
 	})
 	.catch(err => {
 		console.error(err);
