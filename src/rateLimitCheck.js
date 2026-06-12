@@ -1,15 +1,13 @@
 import https from 'node:https';
 
-async function triggerRequest(url, sequenceNumber) {
+function triggerRequest(url, sequenceNumber) {
 	const makeRequest = new Promise((resolve, reject) => {
 		https.get(url, (res) => {
 			resolve({
 				endpoint: url,
 				statusCode: res.statusCode,
 			})
-		}).on('error', (err) => {
-			console.error(err);
-		});
+		}).on('error', (err) => reject(err));
 	}).then((result) => {
 		result.number = sequenceNumber;
 		return result;
