@@ -54,7 +54,7 @@ export async function checkCorsMisconfig(url) {
 						severity: 'High'
 					});
 				}
-				if (resultHeaders?.['access-control-allow-origin'] === newURL.originHeader && resultHeaders?.['access-control-allow-credentials'] === 'true') {
+				else if (resultHeaders?.['access-control-allow-origin'] === newURL.originHeader && resultHeaders?.['access-control-allow-credentials'] === 'true') {
 					resolve({
 						header: 'access-control-allow-origin',
 						status: 'Present',
@@ -63,7 +63,7 @@ export async function checkCorsMisconfig(url) {
 						severity: 'Critical'
 					})
 				}
-				if (resultHeaders?.['access-control-allow-origin'] === newURL.originHeader) {
+				else if (resultHeaders?.['access-control-allow-origin'] === newURL.originHeader) {
 					resolve({
 						header: 'access-control-allow-origin',
 						status: 'Present',
@@ -72,7 +72,7 @@ export async function checkCorsMisconfig(url) {
 						severity: 'High'
 					})
 				}
-				if (!resultHeaders?.['access-control-allow-origin'] && !resultHeaders?.['access-control-allow-credentials']){
+				else if (!resultHeaders?.['access-control-allow-origin'] && !resultHeaders?.['access-control-allow-credentials']){
 					resolve({
 						headers: 'access-control-allow-origin, access-control-allow-credentials',
 						status: 'Absent',
@@ -80,6 +80,15 @@ export async function checkCorsMisconfig(url) {
 						originUsed: newURL.originHeader,
 						severity: 'None'
 					})
+				}
+				else{
+					resolve({
+						header: 'access-control-allow-origin',
+						status: resultHeaders?.['access-control-allow-origin'] ? 'Present (Secure/Unmatched)' : Absent,
+						value: resultHeaders?.['access-control-allow-origin'] || 'None',
+						originUsed: newURL.originHeader,
+						severity: 'None'
+					});
 				}
 			});
 	
