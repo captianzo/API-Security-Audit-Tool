@@ -1,92 +1,79 @@
-import https from 'node:https';
+import { makeRequest } from "./requestHelper.js";
 
-function makeOptionsRequest(url) {
+async function makeOptionsRequest(url) {
+    const findings = [];
+    const responseObject = await makeRequest(url, 'OPTIONS');
 
-	return new Promise((resolve, reject) => {
-		const options = {
-			hostname: url.hostname,
-			path: url.pathname + url.search,
-			method: 'OPTIONS'
-		}
+    const allowHeader = responseObject.headers?.allow?.toUpperCase() || '';
 
-		const req = https.request(options, (res) => {
+    if (allowHeader) {
+        if (allowHeader.includes('TRACE')) {
+            findings.push({
+                endpoint: url.href,
+                header: 'allow',
+                status: 'Present',
+                value: 'TRACE',
+                severity: 'Medium'
+            });
+        }
+        if (allowHeader.includes('PUT')) {
+            findings.push({
+                endpoint: url.href,
+                header: 'allow',
+                status: 'Present',
+                value: 'PUT',
+                severity: 'Low'
+            });
+        }
+        if (allowHeader.includes('DELETE')) {
+            findings.push({
+                endpoint: url.href,
+                header: 'allow',
+                status: 'Present',
+                value: 'DELETE',
+                severity: 'Low'
+            });
+        }
+    }
 
-			const findings = [];
-			const resultHeaders = res.headers;
-
-			if (resultHeaders?.allow) {
-				if (resultHeaders.allow.includes('TRACE')) {
-					findings.push({
-						endpoint: url.href,
-						header: 'allow',
-						status: 'Present',
-						value: 'TRACE',
-						severity: 'Medium'
-					});
-				}
-				if (resultHeaders.allow.includes('PUT')) {
-					findings.push({
-						endpoint: url.href,
-						header: 'allow',
-						status: 'Present',
-						value: 'PUT',
-						severity: 'Low'
-					});
-				}
-				if (resultHeaders.allow.includes('DELETE')) {
-					findings.push({
-						endpoint: url.href,
-						header: 'allow',
-						status: 'Present',
-						value: 'DELETE',
-						severity: 'Low'
-					});
-				}
-			}
-			resolve(findings);
-		})
-
-		req.on('error', reject);
-
-		req.end();
-	})
+    return findings;
 }
 
-function makeTraceRequest(url) {
-	return new Promise((resolve, reject) => {
-		const options = {
-			hostname: url.hostname,
-			path: url.pathname + url.search,
-			method: 'TRACE'
-		}
+async function makeTraceRequest(url) {
+    const responseObject = await makeRequest(url, 'TRACE');
 
-		const req = https.request(options, (res) => {
-			if (res.statusCode === 200) {
-				resolve({
-					endpoint: url.href,
-					header: 'TRACE',
-					status: 'Present',
-					severity: 'Medium'
-				});
-			}
-			else{
-				resolve([]);
-			}
-		});
-
-		req.on('error', reject);
-
-		req.end();
-	})
+    if (responseObject.statusCode === 200) {
+        return {
+            endpoint: url.href,
+            header: 'TRACE',
+            status: 'Present',
+            severity: 'Medium'
+        };
+    }
+    return null; 
 }
 
 export async function checkMethodExposure(inputUrl) {
-	const result = [];
-	const url = new URL(inputUrl);
+    const result = [];
+    const url = new URL(inputUrl);
 
-	result.push(makeOptionsRequest(url));
-	result.push(makeTraceRequest(url));
+    result.push(makeOptionsRequest(url));
+    result.push(makeTraceRequest(url));
 
-	const combinedArrayResult = Promise.all(result);
-	return (await combinedArrayResult).flat();
+    const combinedArrayResult = await Promise.allSettled(result);
+
+    return combinedArrayResult.reduce((acc, request) => {
+        if (request.status === 'fulfilled') {
+            const val = request.value;
+
+            if (val) { 
+                if (Array.isArray(val)) {
+                    acc.push(...val);
+                } else {
+                    acc.push(val);
+                }
+            }
+        }
+        return acc;
+    }, []);
 }

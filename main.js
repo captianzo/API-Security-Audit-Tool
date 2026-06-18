@@ -2,11 +2,17 @@ import { checkVerboseErrors } from './src/errorVerbose.js';
 import { checkHeaders } from './src/missingHeaders.js';
 import { checkCorsMisconfig } from './src/corsMisconfig.js';
 import { checkMethodExposure } from './src/httpMethodsExposure.js';
-import { makeRequest } from './src/missingAuthDetection.js';
-import { collectEndpoints } from './src/endpointCollection.js';
+import { checkMissingAuth } from './src/missingAuthDetection.js';
 import { requestHandler } from './src/rateLimitCheck.js';
+import { makeMultipleRequestsUsingQuerys } from './src/injectionSurfaces.js';
+import { checkForHttps } from './src/httpsCheck.js';
 
 const inputUrl = process.argv[2];
+
+const pathMethod = process.argv.slice(3).map(arg => {
+	const [path, method] = arg.split(':');
+	return { path, method };
+})
 
 if (!inputUrl) {
 	console.log('Please provide a URL');
@@ -14,24 +20,17 @@ if (!inputUrl) {
 	process.exit(1);
 }
 
-const url = new URL(inputUrl);
-
-if (url.protocol !== 'https:') {
-	console.log('Using insecure HTTP, please make sure the provided link uses HTTPS');
-	process.exit(1);
-}
-
-
 async function main(url) {
-	const inputEndpointsForAuthCheck = await collectEndpoints();
 
 	const result = {
+		'MISSING HTTPS PROTOCOL': checkForHttps(url),
 		'RESPONSE HEADERS': checkHeaders(url),
 		'VERBOSE ERROR': checkVerboseErrors(url),
 		'CORS MISCONFIGURATION': checkCorsMisconfig(url),
 		'HTTP METHODS EXPOSURE': checkMethodExposure(url),
-		'MISSING AUTHENTICATION ON ENDPOINTS': makeRequest(inputEndpointsForAuthCheck),
-		'MISSING RATE LIMITING': requestHandler(url)
+		'MISSING AUTHENTICATION ON ENDPOINTS': checkMissingAuth(url, pathMethod),
+		'MISSING RATE LIMITING': requestHandler(url),
+		'CROSS SITE SCRIPTING (XSS)': makeMultipleRequestsUsingQuerys(url)
 	};
 
 	const resultCheckNames = Object.keys(result);
@@ -56,4 +55,4 @@ async function main(url) {
 	})
 }
 
-main(url.href);
+main(inputUrl);

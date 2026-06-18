@@ -1,19 +1,13 @@
-import https from 'node:https';
+import { makeRequest } from "./requestHelper.js";
 
-function triggerRequest(url, sequenceNumber) {
-	const makeRequest = new Promise((resolve, reject) => {
-		https.get(url, (res) => {
-			resolve({
-				endpoint: url,
-				statusCode: res.statusCode,
-			})
-		}).on('error', (err) => reject(err));
-	}).then((result) => {
+async function triggerRequest(url, sequenceNumber) {
+	const responseObject = makeRequest(url, 'GET')
+	.then((result) => {
 		result.number = sequenceNumber;
 		return result;
 	});
 
-	return makeRequest;
+	return responseObject;
 }
 
 export async function requestHandler(url) {

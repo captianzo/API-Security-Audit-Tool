@@ -1,6 +1,8 @@
-import https from 'node:https';
+import { makeRequest } from "./requestHelper.js";
 
-export async function makeRequest(requestObjects) {
+export async function checkMissingAuth(url, pathMethod) {
+
+	console.log(pathMethod);
 
 	const possibleMethodSeverities = {
 		GET: 'Medium/High',
@@ -9,50 +11,33 @@ export async function makeRequest(requestObjects) {
 		DELETE: 'High'
 	};
 
-	const resolvedRequests = requestObjects.map(request => {
+	const result = pathMethod.map(async (input) => {
+		const newUrl = new URL(input.path, url);
+	
+		const responseObject = await makeRequest(newUrl.href, input.method);
+	
+		if (responseObject.statusCode >= 200 && responseObject.statusCode <= 204) {
+			return {
+				endpoint: newUrl.href,
+				method: input.method,
+				statusCode: responseObject.statusCode,
+				status: 'Reachable',
+				severity: possibleMethodSeverities[input.method]
+			};
+		}
+		else {
+			return null;
+		}
+	})
 
-		const url = new URL(request.endpoint);
+	const returnedResults = await Promise.allSettled(result);
 
-		return new Promise((resolve, reject) => {
+	return returnedResults.reduce((acc, request) => {
+		if (request.status === 'fulfilled' && request.value) {
+			acc.push(request.value);
+		}
 
-			const options = {
-				hostname: url.hostname,
-				path: url.pathname + url.search,
-				method: request.method,
-				headers: {}
-			}
-
-			if (request.method !== 'GET'){
-				options.headers['Content-Length'] = Buffer.byteLength(request.body);
-				options.headers['Content-Type'] = request.contentType;
-			}
-
-			const req = https.request(options, (res) => {
-				// console.log(res.statusCode);
-				if (res.statusCode >= 200 && res.statusCode <= 204) {
-					resolve({
-						endpoint: url.href,
-						method: request.method,
-						statusCode: res.statusCode,
-						status: 'Reachable',
-						severity: possibleMethodSeverities[request.method]
-					});
-				}
-				else {
-					resolve([]);
-				}
-			});
-
-			req.on('error', reject);
-
-			if (request.method !== 'GET'){
-				req.write(request.body);
-			}
-
-			req.end();
-		});
-	});
-
-	return (await Promise.all(resolvedRequests)).flat();
+		return acc;
+	}, []);
 }
 

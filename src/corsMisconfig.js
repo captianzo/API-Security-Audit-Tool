@@ -1,9 +1,8 @@
-import https from 'node:https';
+import { makeRequest } from "./requestHelper.js";
 
 function generateTestURL(url) {
 	const myURL1 = new URL(url);
 	const myURL2 = new URL(url);
-	const myURL3 = new URL(url);
 
 	const baseHostname = myURL2.hostname;
 
@@ -27,76 +26,61 @@ function generateTestURL(url) {
 }
 
 export async function checkCorsMisconfig(url) {
+
 	const testScenarios = generateTestURL(url);
+
 	const originalURL = new URL(url);
 
-	const resultPromises = testScenarios.map(newURL => {
+	const resultPromises = testScenarios.map(async (newURL) => {
 
-		return new Promise((resolve, reject) => {
+		const responseObject = await makeRequest(url, 'GET', { 'Origin': newURL.originHeader });
 
-			const options = {
-				hostname: originalURL.hostname,
-				path: originalURL.pathname + originalURL.search,
-				method: 'GET',
-				headers: {
-					'Origin': newURL.originHeader,
-				}
-			}
-	
-			const req = https.request(options, (res) => {
-				const resultHeaders = res.headers;
-				if (resultHeaders?.['access-control-allow-origin'] === '*') {
-					resolve({
-						header: 'access-control-allow-origin',
-						status: 'Present',
-						value: '*',
-						originUsed: newURL.originHeader,
-						severity: 'High'
-					});
-				}
-				else if (resultHeaders?.['access-control-allow-origin'] === newURL.originHeader && resultHeaders?.['access-control-allow-credentials'] === 'true') {
-					resolve({
-						header: 'access-control-allow-origin',
-						status: 'Present',
-						value: 'true',
-						originUsed: newURL.originHeader,
-						severity: 'Critical'
-					})
-				}
-				else if (resultHeaders?.['access-control-allow-origin'] === newURL.originHeader) {
-					resolve({
-						header: 'access-control-allow-origin',
-						status: 'Present',
-						value: originalURL.origin,
-						originUsed: newURL.originHeader,
-						severity: 'High'
-					})
-				}
-				else if (!resultHeaders?.['access-control-allow-origin'] && !resultHeaders?.['access-control-allow-credentials']){
-					resolve({
-						headers: 'access-control-allow-origin, access-control-allow-credentials',
-						status: 'Absent',
-						value: 'None',
-						originUsed: newURL.originHeader,
-						severity: 'None'
-					})
-				}
-				else{
-					resolve({
-						header: 'access-control-allow-origin',
-						status: resultHeaders?.['access-control-allow-origin'] ? 'Present (Secure/Unmatched)' : Absent,
-						value: resultHeaders?.['access-control-allow-origin'] || 'None',
-						originUsed: newURL.originHeader,
-						severity: 'None'
-					});
-				}
+		if (responseObject.headers?.['access-control-allow-origin'] === '*') {
+			return({
+				header: 'access-control-allow-origin',
+				status: 'Present',
+				value: '*',
+				originUsed: newURL.originHeader,
+				severity: 'High'
 			});
-	
-			req.on('error', reject);
-	
-			req.end();
-		})
-	});
+		}
+		else if (responseObject.headers?.['access-control-allow-origin'] === newURL.originHeader && responseObject.headers?.['access-control-allow-credentials'] === 'true') {
+			return({
+				header: 'access-control-allow-origin',
+				status: 'Present',
+				value: 'true',
+				originUsed: newURL.originHeader,
+				severity: 'Critical'
+			})
+		}
+		else if (responseObject.headers?.['access-control-allow-origin'] === newURL.originHeader) {
+			return({
+				header: 'access-control-allow-origin',
+				status: 'Present',
+				value: originalURL.origin,
+				originUsed: newURL.originHeader,
+				severity: 'High'
+			})
+		}
+		else if (!responseObject.headers?.['access-control-allow-origin'] && !responseObject.headers?.['access-control-allow-credentials']) {
+			return({
+				headers: 'access-control-allow-origin, access-control-allow-credentials',
+				status: 'Absent',
+				value: 'None',
+				originUsed: newURL.originHeader,
+				severity: 'None'
+			})
+		}
+		else {
+			return({
+				header: 'access-control-allow-origin',
+				status: responseObject.headers?.['access-control-allow-origin'] ? 'Present (Secure/Unmatched)' : Absent,
+				value: responseObject.headers?.['access-control-allow-origin'] || 'None',
+				originUsed: newURL.originHeader,
+				severity: 'None'
+			});
+		}
+	})
 
 	return Promise.all(resultPromises);
 }

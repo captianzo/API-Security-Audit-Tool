@@ -1,8 +1,8 @@
-import https from 'node:https';
+import { makeRequest } from './requestHelper.js';
 
 export async function checkHeaders(url) {
 	const result = [];
-	
+
 	const requiredHeaders = [
 		{ header: 'x-frame-options', severity: 'Medium' },
 		{ header: 'x-content-type-options', severity: 'Medium-Low' },
@@ -10,19 +10,18 @@ export async function checkHeaders(url) {
 		{ header: 'strict-transport-security', severity: 'High' }
 	];
 
-	return new Promise((resolve, reject) => {
-		https.get(url, (res) => {	
-			for (const currHeader of requiredHeaders) {
-				if (!res.headers[currHeader.header]) {
-					result.push({
-						endpoint: url,
-						header: currHeader.header,
-						status: 'Absent',
-						severity: currHeader.severity
-					});	
-				}
-			}
-			resolve(result);
-		}).on('error', reject);
-	})
+	const responseObject = await makeRequest(url, 'GET');
+
+	for (const currHeader of requiredHeaders) {
+		if (!responseObject.headers[currHeader.header]) {
+			result.push({
+				endpoint: url,
+				header: currHeader.header,
+				status: 'Absent',
+				severity: currHeader.severity
+			});
+		}
+	}
+
+	return result;
 }
