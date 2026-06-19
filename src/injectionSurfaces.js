@@ -16,7 +16,7 @@ export async function makeMultipleRequestsUsingQuerys(url, pathMethod) {
 
 	const allPromises = [];
 	
-	for (const [path, method] of pathMethod){
+	for (const {path, method} of pathMethod){
 
 		const pathRequests = flatWordlist.map(async (newParam) => {
 	
@@ -40,13 +40,23 @@ export async function makeMultipleRequestsUsingQuerys(url, pathMethod) {
 			const reflectedInBody = typeof responseObject.body === 'string' 
                 ? responseObject.body.includes(payload) 
                 : false;
-	
+
+			let severity;
+
+			if (reflectedInBody){
+				severity = 'High/Critical';
+			}
+			else if (reflectedInHeaders){
+				severity = 'Medium/High';
+			}
+
 			return {
 				endpoint: urlObject.href,
 				parameter: newParam,
 				statusCode: responseObject.statusCode,
 				reflectedInHeaders,
-				reflectedInBody
+				reflectedInBody,
+				severity: severity
 			};
 		});
 

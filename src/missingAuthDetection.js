@@ -2,8 +2,6 @@ import { makeRequest } from "./requestHelper.js";
 
 export async function checkMissingAuth(url, pathMethod) {
 
-	console.log(pathMethod);
-
 	const possibleMethodSeverities = {
 		GET: 'Medium/High',
 		POST: 'High',

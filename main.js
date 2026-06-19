@@ -30,7 +30,7 @@ async function main(url) {
 		'HTTP METHODS EXPOSURE': checkMethodExposure(url),
 		'MISSING AUTHENTICATION ON ENDPOINTS': checkMissingAuth(url, pathMethod),
 		'MISSING RATE LIMITING': requestHandler(url),
-		'CROSS SITE SCRIPTING (XSS)': makeMultipleRequestsUsingQuerys(url)
+		'CROSS SITE SCRIPTING (XSS)': makeMultipleRequestsUsingQuerys(url, pathMethod)
 	};
 
 	const resultCheckNames = Object.keys(result);
