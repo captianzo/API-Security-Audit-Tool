@@ -1,6 +1,6 @@
 import { makeRequest } from "./requestHelper.js";
 
-export async function checkVerboseErrors(url) {
+export async function checkVerboseErrors(url, pathMethod) {
 	const result = [];
 
 	const errorIndicators = [
@@ -36,30 +36,42 @@ export async function checkVerboseErrors(url) {
 		}
 	];
 
-	const responseObject = await makeRequest(url, 'GET');
+	await Promise.all(pathMethod.map(async (input) => {
+		const newUrl = new URL(input.path, url);
+		let responseObject;
 
-	if (responseObject.statusCode >= 400 && responseObject.statusCode <= 599) {
-		for (const errMsg of errorIndicators) {
-			if (responseObject.body.includes(errMsg.pattern)) {
-				// console.log(`Verbose error! Information leak caused due to ${errMsg}`);
-				result.push({
-					endpoint: url,
-					pattern: errMsg.pattern,
-					severity: errMsg.severity
-				});
-			}
-		}
+		try {
+			responseObject = await makeRequest(newUrl.href, 'GET');
 
-		for (const regexIndicator of errorRegexIndicators) {
-			if (regexIndicator.pattern.test(responseObject.body)) {
-				result.push({
-					endpoint: url,
-					pattern: regexIndicator.pattern.toString(),
-					severity: regexIndicator.severity
-				});
+			for (const errMsg of errorIndicators) {
+				if (responseObject.body.includes(errMsg.pattern)) {
+					// console.log(`Verbose error! Information leak caused due to ${errMsg}`);
+					result.push({
+						endpoint: newUrl.href,
+						pattern: errMsg.pattern,
+						severity: errMsg.severity
+					});
+				}
 			}
+
+			for (const regexIndicator of errorRegexIndicators) {
+				if (regexIndicator.pattern.test(responseObject.body)) {
+					result.push({
+						endpoint: newUrl.href,
+						pattern: regexIndicator.pattern.toString(),
+						severity: regexIndicator.severity
+					});
+				}
+			}
+		} catch (error) {
+			result.push({
+				endpoint: newUrl.href,
+				method: input.method,
+				status: 'Untestable',
+				reason: error.message
+			})
 		}
-	}
+	}))
 
 	return result;
 }
