@@ -1,6 +1,6 @@
 import { makeRequest } from './requestHelper.js';
 
-export async function checkHeaders(url) {
+export async function checkHeaders(url, pathMethod) {
 	const result = [];
 
 	const requiredHeaders = [
@@ -10,18 +10,32 @@ export async function checkHeaders(url) {
 		{ header: 'strict-transport-security', severity: 'High' }
 	];
 
-	const responseObject = await makeRequest(url, 'GET');
+	await Promise.all(pathMethod.map(async (input) => {
+		const newUrl = new URL(input.path, url);
+		let responseObject;
 
-	for (const currHeader of requiredHeaders) {
-		if (!responseObject.headers[currHeader.header]) {
-			result.push({
-				endpoint: url,
-				header: currHeader.header,
-				status: 'Absent',
-				severity: currHeader.severity
-			});
+		try {
+			responseObject = await makeRequest(newUrl.href, input.method);
+			for (const currHeader of requiredHeaders) {
+				if (!responseObject.headers[currHeader.header]) {
+					result.push({
+						endpoint: newUrl.href,
+						header: currHeader.header,
+						status: 'Absent',
+						severity: currHeader.severity
+					});
+				}
+			}
 		}
-	}
+		catch (error) {
+			result.push({
+				endpoint: newUrl.href,
+				method: input.method,
+				status: 'Untestable',
+				reason: error.message
+			})
+		}
+	}));
 
 	return result;
 }

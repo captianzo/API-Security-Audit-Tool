@@ -9,6 +9,6 @@ export async function checkForHttps(url){
 		};
 	}
 	else {
-		return null;
+		return [];
 	}
 }
