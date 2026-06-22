@@ -107,7 +107,19 @@ export async function checkMissingAuth(url, pathMethod) {
 	const result = pathMethod.map(async (input) => {
 		const newUrl = new URL(input.path, url);
 
-		const responseObject = await makeRequest(newUrl.href, input.method);
+		let responseObject;
+
+		try {
+			responseObject = await makeRequest(newUrl.href, input.method);
+		} catch (error) {
+			return {
+			endpoint: newUrl.href,
+			method: input.method,
+			status: 'Untestable',
+			reason: error.message
+		};
+		}
+
 
 		if (responseObject.statusCode >= 200 && responseObject.statusCode <= 204) {
 			const pathAnalysis = checkRoute(input.path);
@@ -116,37 +128,53 @@ export async function checkMissingAuth(url, pathMethod) {
 			const pathMatches = pathAnalysis.matchedKeywords;
 			const bodyMatches = bodyAnalysis.matchedKeywords;
 
-			if (pathMatches.length > 0 || bodyMatches.length > 0) {
-				const dynamicFindings = {};
-
-				if (pathMatches.length > 0) {
-					dynamicFindings.pathExposedKeywords = pathMatches;
-				}
-				if (bodyMatches.length > 0) {
-					dynamicFindings.bodyExposedKeywords = bodyMatches;
-					dynamicFindings.bodyMatchSource = bodyAnalysis.matchSource;
-				}
-
-				return {
-					endpoint: newUrl.href,
-					method: input.method,
-					statusCode: responseObject.statusCode,
-					status: 'Vulnerable (Missing Auth)',
-					severity: possibleMethodSeverities[input.method],
-					findings: dynamicFindings
-				};
+			let confidence;
+			if (pathMatches.length > 0 && bodyMatches.length > 0) {
+				confidence = 'Certain';
+			} else if (pathMatches.length > 0 || bodyMatches.length > 0) {
+				confidence = 'Firm';
+			} else {
+				confidence = 'Tentative';
 			}
+
+			const dynamicFindings = {};
+			if (pathMatches.length > 0) {
+				dynamicFindings.pathExposedKeywords = pathMatches;
+			}
+			if (bodyMatches.length > 0) {
+				dynamicFindings.bodyExposedKeywords = bodyMatches;
+				dynamicFindings.bodyMatchSource = bodyAnalysis.matchSource;
+			}
+
+			return {
+				endpoint: newUrl.href,
+				method: input.method,
+				statusCode: responseObject.statusCode,
+				status: 'Vulnerable (Missing Auth)',
+				severity: possibleMethodSeverities[input.method],
+				confidence,
+				findings: dynamicFindings
+			};
 		}
-		return null;
-	})
+
+		return {
+			endpoint: newUrl.href,
+			method: input.method,
+			statusCode: responseObject.statusCode,
+			status: 'Untestable',
+			reason: 'Status Code outside testable range (200-204)'
+		};
+	});
 
 	const returnedResults = await Promise.allSettled(result);
 
 	return returnedResults.reduce((acc, request) => {
-		if (request.status === 'fulfilled' && request.value) {
+		if (request.status === 'fulfilled') {
 			acc.push(request.value);
 		}
-
+		if (request.status === 'rejected') {
+			acc.push(request.reason);
+		}
 		return acc;
 	}, []);
 }
