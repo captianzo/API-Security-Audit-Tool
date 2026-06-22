@@ -74,7 +74,7 @@ export async function checkCorsMisconfig(url) {
 		else {
 			return({
 				header: 'access-control-allow-origin',
-				status: responseObject.headers?.['access-control-allow-origin'] ? 'Present (Secure/Unmatched)' : Absent,
+				status: responseObject.headers?.['access-control-allow-origin'] ? 'Present (Secure/Unmatched)' : 'Absent',
 				value: responseObject.headers?.['access-control-allow-origin'] || 'None',
 				originUsed: newURL.originHeader,
 				severity: 'None'

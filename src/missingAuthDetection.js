@@ -1,5 +1,100 @@
 import { makeRequest } from "./requestHelper.js";
 
+function checkRoute(path) {
+	const sensitivePathKeywords = [
+		'admin', 'auth', 'login', 'register', 'account', 'user', 'users',
+		'profile', 'internal', 'manage', 'management', 'settings', 'config',
+		'dashboard', 'billing', 'payment', 'payments', 'delete', 'remove',
+		'private', 'secure', 'session', 'token', 'credential', 'password',
+		'reset', 'backup', 'debug', 'staff', 'employee', 'hr', 'finance', 'secret'
+	];
+
+	const result = {
+		path: path,
+		matchedKeywords: []
+	};
+
+	let decodedPath;
+
+	try {
+		decodedPath = decodeURIComponent(path).toLowerCase();
+	} catch (error) {
+		decodedPath = path.toLowerCase();
+	}
+
+	for (const keyword of sensitivePathKeywords) {
+		if (decodedPath.includes(keyword)) {
+			result.matchedKeywords.push(keyword);
+		}
+	}
+
+	return result;
+}
+
+function collectKeys(value, collectedKeys = []) {
+	if (value === null || value === undefined) {
+		return collectedKeys;
+	}
+
+	if (Array.isArray(value)) {
+		for (const element of value) {
+			collectKeys(element, collectedKeys);
+		}
+	}
+	else if (typeof value === 'object') {
+		const keys = Object.keys(value);
+		for (const key of keys) {
+			collectedKeys.push(key);
+			collectKeys(value[key], collectedKeys);
+		}
+	}
+
+	return collectedKeys;
+}
+
+function checkBody(body) {
+	const sensitiveBodyKeywords = [
+		'email', 'password', 'passwd', 'pwd', 'token', 'accesstoken',
+		'refreshtoken', 'apikey', 'secret', 'ssn', 'creditcard', 'cardnumber',
+		'cvv', 'balance', 'salary', 'income', 'phone', 'address', 'dob',
+		'sessionid', 'authtoken', 'role', 'isadmin', 'permissions',
+		'privatekey', 'bankaccount', 'routingnumber', 'taxid', 'passport'
+	];
+
+	let result = {
+		matchedKeywords: [],
+	}
+
+	let parsedBody;
+
+	try {
+		parsedBody = JSON.parse(body);
+		result.matchSource = 'structured';
+		const extractedKeys = collectKeys(parsedBody);
+
+		for (const keyword of sensitiveBodyKeywords) {
+			const isMatch = extractedKeys.some(key => {
+				return key.toLowerCase().includes(keyword.toLowerCase());
+			})
+
+			if (isMatch) {
+				result.matchedKeywords.push(keyword);
+			}
+		}
+
+	} catch (error) {
+		result.matchSource = 'unstructured';
+		parsedBody = body.toLowerCase();
+		for (const keyword of sensitiveBodyKeywords) {
+			if (parsedBody.includes(keyword)) {
+				result.matchedKeywords.push(keyword);
+			}
+		}
+	}
+
+	return result;
+}
+
 export async function checkMissingAuth(url, pathMethod) {
 
 	const possibleMethodSeverities = {
@@ -11,21 +106,38 @@ export async function checkMissingAuth(url, pathMethod) {
 
 	const result = pathMethod.map(async (input) => {
 		const newUrl = new URL(input.path, url);
-	
+
 		const responseObject = await makeRequest(newUrl.href, input.method);
-	
+
 		if (responseObject.statusCode >= 200 && responseObject.statusCode <= 204) {
-			return {
-				endpoint: newUrl.href,
-				method: input.method,
-				statusCode: responseObject.statusCode,
-				status: 'Reachable',
-				severity: possibleMethodSeverities[input.method]
-			};
+			const pathAnalysis = checkRoute(input.path);
+			const bodyAnalysis = checkBody(responseObject.body || "");
+
+			const pathMatches = pathAnalysis.matchedKeywords;
+			const bodyMatches = bodyAnalysis.matchedKeywords;
+
+			if (pathMatches.length > 0 || bodyMatches.length > 0) {
+				const dynamicFindings = {};
+
+				if (pathMatches.length > 0) {
+					dynamicFindings.pathExposedKeywords = pathMatches;
+				}
+				if (bodyMatches.length > 0) {
+					dynamicFindings.bodyExposedKeywords = bodyMatches;
+					dynamicFindings.bodyMatchSource = bodyAnalysis.matchSource;
+				}
+
+				return {
+					endpoint: newUrl.href,
+					method: input.method,
+					statusCode: responseObject.statusCode,
+					status: 'Vulnerable (Missing Auth)',
+					severity: possibleMethodSeverities[input.method],
+					findings: dynamicFindings
+				};
+			}
 		}
-		else {
-			return null;
-		}
+		return null;
 	})
 
 	const returnedResults = await Promise.allSettled(result);
@@ -38,4 +150,3 @@ export async function checkMissingAuth(url, pathMethod) {
 		return acc;
 	}, []);
 }
-

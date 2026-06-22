@@ -37,22 +37,23 @@ async function main(url) {
 	const resultPromises = Object.values(result);
 
 	Promise.allSettled(resultPromises).then(resolvedResult => {
-		for (let i = 0; i < resultCheckNames.length; i++){
-			if (resolvedResult[i].value === null){
+		for (let i = 0; i < resultCheckNames.length; i++) {
+			if (resolvedResult[i].value === null) {
 				console.log(resultCheckNames[i], "\n", []);
 				continue;
 			}
-			if (resolvedResult[i].status === 'rejected'){
+			if (resolvedResult[i].status === 'rejected') {
 				console.log('\nERROR PERFORMING CHECK FOR', resultCheckNames[i]);
 			}
 			else {
-				console.log(resultCheckNames[i], "\n", resolvedResult[i].value);
+				console.log(resultCheckNames[i]);
+				console.dir(resolvedResult[i].value, { depth: null });
 			}
 		}
 	})
-	.catch(err => {
-		console.error(err);
-	})
+		.catch(err => {
+			console.error(err);
+		})
 }
 
 main(inputUrl);
