@@ -9,6 +9,10 @@ export async function checkForHttps(url){
 		};
 	}
 	else {
-		return [];
+		return {
+			endpoint: urlObject.href,
+			protocol: urlObject.protocol,
+			severity: 'None'
+		};
 	}
 }

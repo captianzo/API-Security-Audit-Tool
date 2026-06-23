@@ -9,10 +9,20 @@ import { checkForHttps } from './src/httpsCheck.js';
 
 const inputUrl = process.argv[2];
 
-const pathMethod = process.argv.slice(3).map(arg => {
+const pathMethod = [];
+pathMethod.push({
+	path: '/',
+	method: 'GET'
+})
+
+if (!process.argv[3]){
+	console.log(`Defaulting to Base URL and 'GET' method`);
+}
+
+pathMethod.push(...process.argv.slice(3).map(arg => {
 	const [path, method] = arg.split(':');
 	return { path, method };
-})
+}))
 
 if (!inputUrl) {
 	console.log('Please provide a URL');
@@ -24,9 +34,9 @@ async function main(url) {
 
 	const result = {
 		'MISSING HTTPS PROTOCOL': checkForHttps(url),
-		'RESPONSE HEADERS': checkHeaders(url),
-		'VERBOSE ERROR': checkVerboseErrors(url),
-		'CORS MISCONFIGURATION': checkCorsMisconfig(url),
+		'RESPONSE HEADERS': checkHeaders(url, pathMethod),
+		'VERBOSE ERROR': checkVerboseErrors(url, pathMethod),
+		'CORS MISCONFIGURATION': checkCorsMisconfig(url, pathMethod),
 		'HTTP METHODS EXPOSURE': checkMethodExposure(url),
 		'MISSING AUTHENTICATION ON ENDPOINTS': checkMissingAuth(url, pathMethod),
 		'MISSING RATE LIMITING': requestHandler(url),
