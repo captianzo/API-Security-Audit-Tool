@@ -4,7 +4,7 @@ import { checkCorsMisconfig } from './src/corsMisconfig.js';
 import { checkMethodExposure } from './src/httpMethodsExposure.js';
 import { checkMissingAuth } from './src/missingAuthDetection.js';
 import { requestHandler } from './src/rateLimitCheck.js';
-import { makeMultipleRequestsUsingQuerys } from './src/injectionSurfaces.js';
+import { makeMultipleRequestsUsingQuerys } from './src/xssCheck.js';
 import { checkForHttps } from './src/httpsCheck.js';
 
 const inputUrl = process.argv[2];
@@ -39,7 +39,7 @@ async function main(url) {
 		'CORS MISCONFIGURATION': checkCorsMisconfig(url, pathMethod),
 		'HTTP METHODS EXPOSURE': checkMethodExposure(url, pathMethod),
 		'MISSING AUTHENTICATION ON ENDPOINTS': checkMissingAuth(url, pathMethod),
-		'MISSING RATE LIMITING': requestHandler(url),
+		'MISSING RATE LIMITING': requestHandler(url, pathMethod),
 		'CROSS SITE SCRIPTING (XSS)': makeMultipleRequestsUsingQuerys(url, pathMethod)
 	};
 
