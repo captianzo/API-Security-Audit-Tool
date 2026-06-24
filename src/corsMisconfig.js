@@ -20,82 +20,86 @@ function generateTestURL(url) {
 }
 
 export async function checkCorsMisconfig(url, pathMethod) {
-    const result = [];
-
-    await Promise.all(pathMethod.map(async (input) => {
+    const endpointPromises = pathMethod.map(async (input) => {
+        const endpointResults = [];
         const newUrl = new URL(input.path, url);
         const testScenarios = generateTestURL(newUrl.href);
 
-        for (const newURL of testScenarios) {
+        for (const newOriginURL of testScenarios) {
             try {
-                const responseObject = await makeRequest(newUrl.href, 'GET', { 'Origin': newURL.originHeader });
+                const responseObject = await makeRequest(newUrl.href, 'GET', { 'Origin': newOriginURL.originHeader });
 
                 if (responseObject.headers?.['access-control-allow-origin'] === '*') {
-                    result.push({
+                    endpointResults.push({
                         endpoint: newUrl.href,
                         method: input.method,
                         header: 'access-control-allow-origin',
                         status: 'Present',
                         value: '*',
-                        originUsed: newURL.originHeader,
+                        originUsed: newOriginURL.originHeader,
                         severity: 'High'
                     });
+                    break;
                 }
-                else if (responseObject.headers?.['access-control-allow-origin'] === newURL.originHeader && responseObject.headers?.['access-control-allow-credentials'] === 'true') {
-                    result.push({
+                else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader && responseObject.headers?.['access-control-allow-credentials'] === 'true') {
+                    endpointResults.push({
                         endpoint: newUrl.href,
                         method: input.method,
                         header: 'access-control-allow-origin',
                         status: 'Present',
-                        value: newURL.originHeader, 
-                        originUsed: newURL.originHeader,
+                        value: newOriginURL.originHeader, 
+                        originUsed: newOriginURL.originHeader,
                         severity: 'Critical'
                     });
                 }
-                else if (responseObject.headers?.['access-control-allow-origin'] === newURL.originHeader) {
-                    result.push({
+                else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader) {
+                    endpointResults.push({
                         endpoint: newUrl.href,
                         method: input.method,
                         header: 'access-control-allow-origin',
                         status: 'Present',
-                        value: newURL.originHeader,
-                        originUsed: newURL.originHeader,
+                        value: newOriginURL.originHeader,
+                        originUsed: newOriginURL.originHeader,
                         severity: 'High'
                     });
                 }
                 else if (!responseObject.headers?.['access-control-allow-origin'] && !responseObject.headers?.['access-control-allow-credentials']) {
-                    result.push({
+                    endpointResults.push({
                         endpoint: newUrl.href,
                         method: input.method,
                         headers: 'access-control-allow-origin, access-control-allow-credentials',
                         status: 'Absent',
                         value: 'None',
-                        originUsed: newURL.originHeader,
+                        originUsed: newOriginURL.originHeader,
                         severity: 'None'
                     });
                 }
                 else {
-                    result.push({
+                    endpointResults.push({
                         endpoint: newUrl.href,
                         method: input.method,
                         header: 'access-control-allow-origin',
                         status: responseObject.headers?.['access-control-allow-origin'] ? 'Present (Secure/Unmatched)' : 'Absent',
                         value: responseObject.headers?.['access-control-allow-origin'] || 'None',
-                        originUsed: newURL.originHeader,
+                        originUsed: newOriginURL.originHeader,
                         severity: 'None'
                     });
                 }
             } catch (error) {
-                result.push({
+                endpointResults.push({
                     endpoint: newUrl.href,
                     method: input.method,
                     status: 'Untestable',
-                    originUsed: newURL.originHeader,
+                    originUsed: newOriginURL.originHeader,
                     reason: error.message
                 });
             }
         }
-    }));
+        
+        return endpointResults;
+    });
 
-    return result; 
+    const nestedResults = await Promise.all(endpointPromises);
+
+    return nestedResults.flat(); 
 }
