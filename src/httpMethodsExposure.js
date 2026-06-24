@@ -9,7 +9,7 @@ async function makeOptionsRequest(url) {
     if (allowHeader) {
         if (allowHeader.includes('TRACE')) {
             findings.push({
-                endpoint: url.href,
+                endpoint: url,
                 header: 'allow',
                 status: 'Present',
                 value: 'TRACE',
@@ -18,7 +18,7 @@ async function makeOptionsRequest(url) {
         }
         if (allowHeader.includes('PUT')) {
             findings.push({
-                endpoint: url.href,
+                endpoint: url,
                 header: 'allow',
                 status: 'Present',
                 value: 'PUT',
@@ -27,7 +27,7 @@ async function makeOptionsRequest(url) {
         }
         if (allowHeader.includes('DELETE')) {
             findings.push({
-                endpoint: url.href,
+                endpoint: url,
                 header: 'allow',
                 status: 'Present',
                 value: 'DELETE',
@@ -44,7 +44,7 @@ async function makeTraceRequest(url) {
 
     if (responseObject.statusCode === 200) {
         return {
-            endpoint: url.href,
+            endpoint: url,
             header: 'TRACE',
             status: 'Present',
             severity: 'Medium'
@@ -53,27 +53,32 @@ async function makeTraceRequest(url) {
     return null; 
 }
 
-export async function checkMethodExposure(inputUrl) {
+export async function checkMethodExposure(url, pathMethod) {
     const result = [];
-    const url = new URL(inputUrl);
 
-    result.push(makeOptionsRequest(url));
-    result.push(makeTraceRequest(url));
+    await Promise.all(pathMethod.map(async (input) => {
+        let currentUrlString = `${url}/${input.path}`
 
-    const combinedArrayResult = await Promise.allSettled(result);
+        try {
+            const newUrl = new URL(input.path, url);
+            currentUrlString = newUrl.href;
 
-    return combinedArrayResult.reduce((acc, request) => {
-        if (request.status === 'fulfilled') {
-            const val = request.value;
+            const optionsFindings = await makeOptionsRequest(newUrl.href);
+            result.push(...optionsFindings);
 
-            if (val) { 
-                if (Array.isArray(val)) {
-                    acc.push(...val);
-                } else {
-                    acc.push(val);
-                }
+            const traceFinding = await makeTraceRequest(newUrl.href);
+            if (traceFinding) {
+                result.push(traceFinding);
             }
+        } catch (error) {
+            result.push({
+                endpoint: currentUrlString,
+                method: ['OPTIONS', 'TRACE'],
+                status: 'Untestable',
+                reason: error.message
+            })
         }
-        return acc;
-    }, []);
+    }))
+
+    return result;
 }

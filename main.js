@@ -37,7 +37,7 @@ async function main(url) {
 		'RESPONSE HEADERS': checkHeaders(url, pathMethod),
 		'VERBOSE ERROR': checkVerboseErrors(url, pathMethod),
 		'CORS MISCONFIGURATION': checkCorsMisconfig(url, pathMethod),
-		'HTTP METHODS EXPOSURE': checkMethodExposure(url),
+		'HTTP METHODS EXPOSURE': checkMethodExposure(url, pathMethod),
 		'MISSING AUTHENTICATION ON ENDPOINTS': checkMissingAuth(url, pathMethod),
 		'MISSING RATE LIMITING': requestHandler(url),
 		'CROSS SITE SCRIPTING (XSS)': makeMultipleRequestsUsingQuerys(url, pathMethod)

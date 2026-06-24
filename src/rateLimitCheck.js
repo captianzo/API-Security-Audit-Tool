@@ -10,9 +10,8 @@ async function triggerRequest(url, sequenceNumber) {
 	return responseObject;
 }
 
-export async function requestHandler(url) {
+export async function requestHandler(url, pathMethod) {
 	const requests = [];
-
 	const allowedStatusCodes = [402, 403, 429, 503];
 
 	for (let i = 1; i <= 100; i++) {
