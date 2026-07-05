@@ -16,7 +16,7 @@ pathMethod.push({
 })
 
 if (!process.argv[3]){
-	console.log(`Defaulting to Base URL and 'GET' method`);
+	console.log(`No path:method provided - Defaulting to Base URL and 'GET' method`);
 }
 
 pathMethod.push(...process.argv.slice(3).map(arg => {
