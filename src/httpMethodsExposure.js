@@ -9,29 +9,38 @@ async function makeOptionsRequest(url) {
     if (allowHeader) {
         if (allowHeader.includes('TRACE')) {
             findings.push({
+                checkName: 'HTTP Methods Exposure',
                 endpoint: url,
-                header: 'allow',
-                status: 'Present',
-                value: 'TRACE',
-                severity: 'Medium'
+                severity: 'Medium',
+                detail: {
+                    header: 'allow',
+                    status: 'Present',
+                    value: 'TRACE',
+                }
             });
         }
         if (allowHeader.includes('PUT')) {
             findings.push({
+                checkName: 'HTTP Methods Exposure',
                 endpoint: url,
-                header: 'allow',
-                status: 'Present',
-                value: 'PUT',
-                severity: 'Low'
+                severity: 'Low',
+                detail: {
+                    header: 'allow',
+                    status: 'Present',
+                    value: 'PUT',
+                }
             });
         }
         if (allowHeader.includes('DELETE')) {
             findings.push({
+                checkName: 'HTTP Methods Exposure',
                 endpoint: url,
-                header: 'allow',
-                status: 'Present',
-                value: 'DELETE',
-                severity: 'Low'
+                severity: 'Low',
+                detail: {
+                    header: 'allow',
+                    status: 'Present',
+                    value: 'DELETE',
+                }
             });
         }
     }
@@ -44,10 +53,13 @@ async function makeTraceRequest(url) {
 
     if (responseObject.statusCode === 200) {
         return {
+            checkName: 'HTTP Methods Exposure',
             endpoint: url,
-            header: 'TRACE',
-            status: 'Present',
-            severity: 'Medium'
+            severity: 'Medium',
+            detail: {
+                header: 'TRACE',
+                status: 'Present',
+            }
         };
     }
     return null; 
@@ -62,20 +74,49 @@ export async function checkMethodExposure(url, pathMethod) {
         try {
             const newUrl = new URL(input.path, url);
             currentUrlString = newUrl.href;
+        } catch (error) {
+            result.push({
+                checkName: 'HTTP Methods Exposure',
+                endpoint: currentUrlString,
+                testable: false,
+                detail: {
+                    stage: 'url construction',
+                    reason: error.message
+                }
+            })
+            return;
+        }
 
-            const optionsFindings = await makeOptionsRequest(newUrl.href);
+        try {
+            const optionsFindings = await makeOptionsRequest(currentUrlString);
             result.push(...optionsFindings);
 
-            const traceFinding = await makeTraceRequest(newUrl.href);
+        } catch (error) {
+            result.push({
+                checkName: 'HTTP Methods Exposure',
+                endpoint: currentUrlString,
+                testable: false,
+                detail: {
+                    method: 'OPTIONS',
+                    reason: error.message
+                }
+            })
+        }
+        
+        try {
+            const traceFinding = await makeTraceRequest(currentUrlString);
             if (traceFinding) {
                 result.push(traceFinding);
             }
         } catch (error) {
             result.push({
+                checkName: 'HTTP Methods Exposure',
                 endpoint: currentUrlString,
-                method: ['OPTIONS', 'TRACE'],
-                status: 'Untestable',
-                reason: error.message
+                testable: false,
+                detail: {
+                    method: 'TRACE',
+                    reason: error.message
+                }
             })
         }
     }))
