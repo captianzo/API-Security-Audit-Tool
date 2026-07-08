@@ -22,7 +22,25 @@ function generateTestURL(url) {
 export async function checkCorsMisconfig(url, pathMethod) {
     const endpointPromises = pathMethod.map(async (input) => {
         const endpointResults = [];
-        const newUrl = new URL(input.path, url);
+        let newUrl = `${url}/${input.path}`;
+
+        try {
+            const receivedUrl = new URL(input.path, url);
+            newUrl = receivedUrl;
+        } catch (error) {
+            endpointResults.push({
+                    checkName: 'CORS Misconfig',
+                    endpoint: newUrl,
+                    testable: false,
+                    detail: {
+                        stage: 'url construction',
+                        reason: error.message
+                    }
+                }
+            );
+            return endpointResults;
+        }
+
         const testScenarios = generateTestURL(newUrl.href);
 
         for (const newOriginURL of testScenarios) {
@@ -31,67 +49,90 @@ export async function checkCorsMisconfig(url, pathMethod) {
 
                 if (responseObject.headers?.['access-control-allow-origin'] === '*') {
                     endpointResults.push({
+                        checkName: 'CORS Misconfig',
                         endpoint: newUrl.href,
-                        method: input.method,
-                        header: 'access-control-allow-origin',
-                        status: 'Present',
-                        value: '*',
-                        originUsed: newOriginURL.originHeader,
-                        severity: 'High'
+                        severity: 'High',
+                        detail: {
+                            method: input.method,
+                            header: 'access-control-allow-origin',
+                            status: 'Present',
+                            value: '*',
+                            originUsed: newOriginURL.originHeader,
+                        }
                     });
                     break;
                 }
                 else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader && responseObject.headers?.['access-control-allow-credentials'] === 'true') {
                     endpointResults.push({
+                        checkName: 'CORS Misconfig',
                         endpoint: newUrl.href,
-                        method: input.method,
-                        header: 'access-control-allow-origin',
-                        status: 'Present',
-                        value: newOriginURL.originHeader, 
-                        originUsed: newOriginURL.originHeader,
-                        severity: 'Critical'
+                        severity: 'Critical',
+                        detail: {
+                            method: input.method,
+                            header: 'access-control-allow-origin',
+                            status: 'Present',
+                            value: newOriginURL.originHeader, 
+                            originUsed: newOriginURL.originHeader,
+                        }
                     });
                 }
                 else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader) {
                     endpointResults.push({
+                        checkName: 'CORS Misconfig',
                         endpoint: newUrl.href,
-                        method: input.method,
-                        header: 'access-control-allow-origin',
-                        status: 'Present',
-                        value: newOriginURL.originHeader,
-                        originUsed: newOriginURL.originHeader,
-                        severity: 'High'
+                        severity: 'High',
+                        detail: {
+                            method: input.method,
+                            header: 'access-control-allow-origin',
+                            status: 'Present',
+                            value: newOriginURL.originHeader,
+                            originUsed: newOriginURL.originHeader,
+                        }
                     });
                 }
                 else if (!responseObject.headers?.['access-control-allow-origin'] && !responseObject.headers?.['access-control-allow-credentials']) {
-                    endpointResults.push({
-                        endpoint: newUrl.href,
-                        method: input.method,
-                        headers: 'access-control-allow-origin, access-control-allow-credentials',
-                        status: 'Absent',
-                        value: 'None',
-                        originUsed: newOriginURL.originHeader,
-                        severity: 'None'
-                    });
+                    // endpointResults.push({
+                    //     checkName: 'CORS Misconfig',
+                    //     endpoint: newUrl.href,
+                    //     severity: 'None',
+                    //     detail: {
+                    //         method: input.method,
+                    //         headers: 'access-control-allow-origin, access-control-allow-credentials',
+                    //         status: 'Absent',
+                    //         value: 'None',
+                    //         originUsed: newOriginURL.originHeader,
+                    //     }
+                    // });
+
+                    // Do nothing since we decided to only push into results when there is some sort of severity, otherwise its just clutter which needs to be filtered later
                 }
                 else {
-                    endpointResults.push({
-                        endpoint: newUrl.href,
-                        method: input.method,
-                        header: 'access-control-allow-origin',
-                        status: responseObject.headers?.['access-control-allow-origin'] ? 'Present (Secure/Unmatched)' : 'Absent',
-                        value: responseObject.headers?.['access-control-allow-origin'] || 'None',
-                        originUsed: newOriginURL.originHeader,
-                        severity: 'None'
-                    });
+                    // endpointResults.push({
+                    //     checkName: 'CORS Misconfig',
+                    //     endpoint: newUrl.href,
+                    //     severity: 'None',
+                    //     detail: {
+                    //         method: input.method,
+                    //         header: 'access-control-allow-origin',
+                    //         status: responseObject.headers?.['access-control-allow-origin'] ? 'Present (Secure/Unmatched)' : 'Absent',
+                    //         value: responseObject.headers?.['access-control-allow-origin'] || 'None',
+                    //         originUsed: newOriginURL.originHeader,
+                    //     }
+                    // });
+
+                    // Do nothing since we decided to only push into results when there is some sort of severity, otherwise its just clutter which needs to be filtered later
                 }
             } catch (error) {
                 endpointResults.push({
+                    checkName: 'CORS Misconfig',
                     endpoint: newUrl.href,
-                    method: input.method,
-                    status: 'Untestable',
-                    originUsed: newOriginURL.originHeader,
-                    reason: error.message
+                    testable: false,
+                    detail: {
+                        method: input.method,
+                        status: 'Untestable',
+                        originUsed: newOriginURL.originHeader,
+                        reason: error.message
+                    }
                 });
             }
         }
