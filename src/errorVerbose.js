@@ -61,10 +61,26 @@ export async function checkVerboseErrors(url, pathMethod) {
     ];
 
     await Promise.all(pathMethod.map(async (input) => {
-        const newUrl = new URL(input.path, url);
+        let currentUrlString = `${url}/${input.path}`
 
         try {
-            const responseObject = await makeRequest(newUrl.href, 'GET');
+            const newUrl = new URL(input.path, url);
+            currentUrlString = newUrl.href;
+        } catch (error) {
+            result.push({
+                checkName: 'Verbose Error',
+                endpoint: currentUrlString,
+                testable: false,
+                detail: {
+                    stage: 'url construction',
+                    reason: error.message
+                }
+            })
+            return;
+        }
+
+        try {
+            const responseObject = await makeRequest(currentUrlString, 'GET');
             const statusCode = responseObject.statusCode;
 
             for (const errMsg of errorIndicators) {
@@ -73,10 +89,13 @@ export async function checkVerboseErrors(url, pathMethod) {
                     const finalSeverity = calculateSeverity(errMsg.baseSeverity, statusCode);
 
                     result.push({
-                        endpoint: newUrl.href,
-                        statusCode: statusCode, // Added status code to the report
-                        pattern: errMsg.pattern,
-                        severity: finalSeverity // Using the dynamically calculated severity
+                        checkName: 'Verbose Error',
+                        endpoint: currentUrlString,
+                        severity: finalSeverity, // Using the dynamically calculated severity
+                        detail: {
+                            statusCode: statusCode, // Added status code to the report
+                            pattern: errMsg.pattern,
+                        }
                     });
                 }
             }
@@ -87,19 +106,26 @@ export async function checkVerboseErrors(url, pathMethod) {
                     const finalSeverity = calculateSeverity(regexIndicator.baseSeverity, statusCode);
 
                     result.push({
-                        endpoint: newUrl.href,
-                        statusCode: statusCode,
-                        pattern: regexIndicator.pattern.toString(),
-                        severity: finalSeverity
+                        checkName: 'Verbose Error',
+                        endpoint: currentUrlString,
+                        severity: finalSeverity,
+                        detail: {
+                            statusCode: statusCode,
+                            pattern: regexIndicator.pattern.toString(),
+                        }
                     });
                 }
             }
         } catch (error) {
             result.push({
-                endpoint: newUrl.href,
-                method: input.method,
-                status: 'Untestable',
-                reason: error.message
+                checkName: 'Verbose Error',
+                endpoint: currentUrlString,
+                testable: false,
+                detail: {
+                    method: input.method,
+                    status: 'Untestable',
+                    reason: error.message
+                }
             });
         }
     }));
