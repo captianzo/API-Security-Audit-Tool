@@ -11,28 +11,50 @@ export async function checkHeaders(url, pathMethod) {
 	];
 
 	await Promise.all(pathMethod.map(async (input) => {
-		const newUrl = new URL(input.path, url);
 		let responseObject;
+		let currentUrlString = `${url}/${input.path}`
+		
+		try {
+			const newUrl = new URL(input.path, url);
+			currentUrlString = newUrl.href;
+		} catch (error) {
+			result.push({
+                checkName: 'Missing Security Headers',
+                endpoint: currentUrlString,
+                testable: false,
+                detail: {
+                    stage: 'url construction',
+                    reason: error.message
+                }
+            })
+			return;
+		}
 
 		try {
-			responseObject = await makeRequest(newUrl.href, input.method);
+			responseObject = await makeRequest(currentUrlString, input.method);
 			for (const currHeader of requiredHeaders) {
 				if (!responseObject.headers[currHeader.header]) {
 					result.push({
-						endpoint: newUrl.href,
-						header: currHeader.header,
-						status: 'Absent',
-						severity: currHeader.severity
+						checkName: 'Missing Security Headers',
+						endpoint: currentUrlString,
+						severity: currHeader.severity,
+						detail: {
+							header: currHeader.header,
+							status: 'Absent',
+						}
 					});
 				}
 			}
 		}
 		catch (error) {
 			result.push({
-				endpoint: newUrl.href,
-				method: input.method,
-				status: 'Untestable',
-				reason: error.message
+				checkName: 'Missing Security Headers',
+				endpoint: currentUrlString,
+				testable: false,
+				detail: {
+					method: input.method,
+					reason: error.message
+				}
 			})
 		}
 	}));

@@ -123,7 +123,6 @@ export async function checkVerboseErrors(url, pathMethod) {
                 testable: false,
                 detail: {
                     method: input.method,
-                    status: 'Untestable',
                     reason: error.message
                 }
             });
