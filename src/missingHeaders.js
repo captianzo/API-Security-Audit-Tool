@@ -5,7 +5,7 @@ export async function checkHeaders(url, pathMethod) {
 
 	const requiredHeaders = [
 		{ header: 'x-frame-options', severity: 'Medium' },
-		{ header: 'x-content-type-options', severity: 'Medium-Low' },
+		{ header: 'x-content-type-options', severity: 'Medium' },
 		{ header: 'content-security-policy', severity: 'High' },
 		{ header: 'strict-transport-security', severity: 'High' }
 	];
@@ -21,8 +21,10 @@ export async function checkHeaders(url, pathMethod) {
 			result.push({
                 checkName: 'Missing Security Headers',
                 endpoint: currentUrlString,
+				source: input.source,
                 testable: false,
                 detail: {
+					method: input.method,
                     stage: 'url construction',
                     reason: error.message
                 }
@@ -37,6 +39,7 @@ export async function checkHeaders(url, pathMethod) {
 					result.push({
 						checkName: 'Missing Security Headers',
 						endpoint: currentUrlString,
+						source: input.source,
 						severity: currHeader.severity,
 						detail: {
 							header: currHeader.header,
@@ -50,9 +53,11 @@ export async function checkHeaders(url, pathMethod) {
 			result.push({
 				checkName: 'Missing Security Headers',
 				endpoint: currentUrlString,
+				source: input.source,
 				testable: false,
 				detail: {
 					method: input.method,
+					stage: 'header fetch',
 					reason: error.message
 				}
 			})

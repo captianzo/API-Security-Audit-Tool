@@ -12,7 +12,8 @@ const inputUrl = process.argv[2];
 const pathMethod = [];
 pathMethod.push({
 	path: '/',
-	method: 'GET'
+	method: 'GET',
+	source: 'default-base-check'
 })
 
 if (!process.argv[3]){
@@ -21,7 +22,7 @@ if (!process.argv[3]){
 
 pathMethod.push(...process.argv.slice(3).map(arg => {
 	const [path, method] = arg.split(':');
-	return { path, method };
+	return { path, method, source: 'user-specified' };
 }))
 
 if (!inputUrl) {

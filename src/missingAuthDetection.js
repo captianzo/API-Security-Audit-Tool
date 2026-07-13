@@ -97,29 +97,88 @@ function checkBody(body) {
 
 export async function checkMissingAuth(url, pathMethod) {
 
-	const possibleMethodSeverities = {
-		GET: 'Medium/High',
+	const methodSeverityMap = {
 		POST: 'High',
 		PUT: 'High',
-		DELETE: 'High'
+		PATCH: 'High',
+		DELETE: 'Critical',
+		GET: 'Medium'
 	};
 
 	const result = pathMethod.map(async (input) => {
-		const newUrl = new URL(input.path, url);
+		let currentUrlString = `${url}/${input.path}`
+
+		try {
+			const newUrl = new URL(input.path, url);
+			currentUrlString = newUrl.href;
+		} catch (error) {
+			return {
+				checkName: 'Missing Authentication Detection',
+				endpoint: currentUrlString,
+				source: input.source,
+				testable: false,
+				detail: {
+					method: input.method,
+					reason: error.message
+				}
+			}
+		}
+
+		if (input.method === 'HEAD') {
+			return {
+				checkName: 'Missing Authentication Detection',
+				endpoint: currentUrlString,
+				source: input.source,
+				testable: false,
+				detail: {
+					method: input.method,
+					reason: 'HEAD returns no body, cannot assess data sensitivity'
+				}
+			};
+		}
+
+		if (input.method === 'OPTIONS') {
+			return {
+				checkName: 'Missing Authentication Detection',
+				endpoint: currentUrlString,
+				source: input.source,
+				testable: false,
+				detail: {
+					method: input.method,
+					reason: 'OPTIONS is expected to be publicly accessible'
+				}
+			};
+		}
+
+		if (!methodSeverityMap[input.method]) {
+			return {
+				checkName: 'Missing Authentication Detection',
+				endpoint: currentUrlString,
+				source: input.source,
+				testable: false,
+				detail: {
+					method: input.method,
+					reason: 'method not recognized for auth-severity mapping'
+				}
+			};
+		}
 
 		let responseObject;
 
 		try {
-			responseObject = await makeRequest(newUrl.href, input.method);
+			responseObject = await makeRequest(currentUrlString, input.method);
 		} catch (error) {
 			return {
-			endpoint: newUrl.href,
-			method: input.method,
-			status: 'Untestable',
-			reason: error.message
-		};
+				checkName: 'Missing Authentication Detection',
+				endpoint: currentUrlString,
+				source: input.source,
+				testable: false,
+				detail: {
+					method: input.method,
+					reason: error.message
+				}
+			};
 		}
-
 
 		if (responseObject.statusCode >= 200 && responseObject.statusCode <= 204) {
 			const pathAnalysis = checkRoute(input.path);
@@ -147,22 +206,30 @@ export async function checkMissingAuth(url, pathMethod) {
 			}
 
 			return {
-				endpoint: newUrl.href,
-				method: input.method,
-				statusCode: responseObject.statusCode,
-				status: 'Vulnerable (Missing Auth)',
-				severity: possibleMethodSeverities[input.method],
-				confidence,
-				findings: dynamicFindings
+				checkName: 'Missing Authentication Detection',
+				endpoint: currentUrlString,
+				source: input.source,
+				severity: methodSeverityMap[input.method],
+				detail: {
+					method: input.method,
+					statusCode: responseObject.statusCode,
+					status: 'Vulnerable (Missing Auth)',
+					confidence,
+					findings: dynamicFindings
+				}
 			};
 		}
 
 		return {
-			endpoint: newUrl.href,
-			method: input.method,
-			statusCode: responseObject.statusCode,
-			status: 'Untestable',
-			reason: 'Status Code outside testable range (200-204)'
+			checkName: 'Missing Authentication Detection',
+			endpoint: currentUrlString,
+			source: input.source,
+			testable: false,
+			detail: {
+				method: input.method,
+				statusCode: responseObject.statusCode,
+				reason: 'Status Code outside testable range (200-204)'
+			}
 		};
 	});
 
