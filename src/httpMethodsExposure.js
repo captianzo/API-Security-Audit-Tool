@@ -1,6 +1,6 @@
 import { makeRequest } from "./requestHelper.js";
 
-async function makeOptionsRequest(url) {
+async function makeOptionsRequest(url, source) {
     const findings = [];
     const responseObject = await makeRequest(url, 'OPTIONS');
 
@@ -11,6 +11,7 @@ async function makeOptionsRequest(url) {
             findings.push({
                 checkName: 'HTTP Methods Exposure',
                 endpoint: url,
+                source: source,
                 severity: 'Medium',
                 detail: {
                     header: 'allow',
@@ -23,6 +24,7 @@ async function makeOptionsRequest(url) {
             findings.push({
                 checkName: 'HTTP Methods Exposure',
                 endpoint: url,
+                source: source,
                 severity: 'Low',
                 detail: {
                     header: 'allow',
@@ -35,6 +37,7 @@ async function makeOptionsRequest(url) {
             findings.push({
                 checkName: 'HTTP Methods Exposure',
                 endpoint: url,
+                source: source,
                 severity: 'Low',
                 detail: {
                     header: 'allow',
@@ -48,13 +51,14 @@ async function makeOptionsRequest(url) {
     return findings;
 }
 
-async function makeTraceRequest(url) {
+async function makeTraceRequest(url, source) {
     const responseObject = await makeRequest(url, 'TRACE');
 
     if (responseObject.statusCode === 200) {
         return {
             checkName: 'HTTP Methods Exposure',
             endpoint: url,
+            source: source,
             severity: 'Medium',
             detail: {
                 header: 'TRACE',
@@ -78,6 +82,7 @@ export async function checkMethodExposure(url, pathMethod) {
             result.push({
                 checkName: 'HTTP Methods Exposure',
                 endpoint: currentUrlString,
+                source: input.source,
                 testable: false,
                 detail: {
                     stage: 'url construction',
@@ -88,13 +93,14 @@ export async function checkMethodExposure(url, pathMethod) {
         }
 
         try {
-            const optionsFindings = await makeOptionsRequest(currentUrlString);
+            const optionsFindings = await makeOptionsRequest(currentUrlString, input.source);
             result.push(...optionsFindings);
 
         } catch (error) {
             result.push({
                 checkName: 'HTTP Methods Exposure',
                 endpoint: currentUrlString,
+                source: input.source,
                 testable: false,
                 detail: {
                     method: 'OPTIONS',
@@ -104,7 +110,7 @@ export async function checkMethodExposure(url, pathMethod) {
         }
         
         try {
-            const traceFinding = await makeTraceRequest(currentUrlString);
+            const traceFinding = await makeTraceRequest(currentUrlString, input.source);
             if (traceFinding) {
                 result.push(traceFinding);
             }
@@ -112,6 +118,7 @@ export async function checkMethodExposure(url, pathMethod) {
             result.push({
                 checkName: 'HTTP Methods Exposure',
                 endpoint: currentUrlString,
+                source: input.source,
                 testable: false,
                 detail: {
                     method: 'TRACE',

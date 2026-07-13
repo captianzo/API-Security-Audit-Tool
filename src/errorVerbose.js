@@ -70,6 +70,7 @@ export async function checkVerboseErrors(url, pathMethod) {
             result.push({
                 checkName: 'Verbose Error',
                 endpoint: currentUrlString,
+                source: input.source,
                 testable: false,
                 detail: {
                     stage: 'url construction',
@@ -91,6 +92,7 @@ export async function checkVerboseErrors(url, pathMethod) {
                     result.push({
                         checkName: 'Verbose Error',
                         endpoint: currentUrlString,
+                        source: input.source,
                         severity: finalSeverity, // Using the dynamically calculated severity
                         detail: {
                             statusCode: statusCode, // Added status code to the report
@@ -108,6 +110,7 @@ export async function checkVerboseErrors(url, pathMethod) {
                     result.push({
                         checkName: 'Verbose Error',
                         endpoint: currentUrlString,
+                        source: input.source,
                         severity: finalSeverity,
                         detail: {
                             statusCode: statusCode,
@@ -120,6 +123,7 @@ export async function checkVerboseErrors(url, pathMethod) {
             result.push({
                 checkName: 'Verbose Error',
                 endpoint: currentUrlString,
+                source: input.source,
                 testable: false,
                 detail: {
                     method: input.method,
