@@ -15,11 +15,29 @@ export async function requestHandler(url, pathMethod) {
 	const allowedStatusCodes = [402, 403, 429, 503];
 
 	for (const input of pathMethod) {
-		const newUrl = new URL(input.path, url);
+		let currentUrlString = `${url}/${input.path}`;
+
+		try {
+			const newUrl = new URL(input.path, url);
+			currentUrlString = newUrl.href;
+		} catch (error) {
+			result.push({
+				checkName: 'Rate Limit Check',
+				endpoint: currentUrlString,
+				source: input.source,
+				testable: false,
+				detail: {
+					method: input.method,
+					stage: 'url construction',
+					reason: error.message
+				}
+			})
+			continue;
+		}
 		const requests = [];
 
 		for (let i = 1; i <= 100; i++) {
-			requests.push(triggerRequest(newUrl.href, i));
+			requests.push(triggerRequest(currentUrlString, i));
 		}
 
 		const resolvedRequests = Promise.allSettled(requests);
@@ -28,9 +46,13 @@ export async function requestHandler(url, pathMethod) {
 
 		if (filteredRequests.length === 0) {
 			result.push({
-				endpoint: newUrl.href,
-				rateLimiting: 'Disabled',
-				severity: 'Critical'
+				checkName: 'Rate Limit Check',
+				endpoint: currentUrlString,
+				source: input.source,
+				severity: 'Critical',
+				detail: {
+					rateLimiting: 'Disabled',
+				}
 			})
 			continue;
 		}
@@ -40,25 +62,44 @@ export async function requestHandler(url, pathMethod) {
 		});
 
 		if (minElement.value.number >= 1 && minElement.value.number <= 20) {
-			return null;
+			// result.push({
+			// 	checkName: 'Rate Limit Check',
+			// 	endpoint: currentUrlString,
+			// 	source: input.source,
+			// 	severity: 'None',
+			// 	detail: {
+			// 		rateLimiting: 'Enabled',
+			// 		statusCode: minElement.value.statusCode,
+			// 		requestNumber: minElement.value.number,
+			// 	}
+			// })
+			continue;
 		}
 
 		else if (minElement.value.number >= 21 && minElement.value.number <= 50) {
 			result.push({
-				endpoint: newUrl.href,
-				rateLimiting: 'Enabled',
-				statusCode: minElement.value.statusCode,
-				requestNumber: minElement.value.number,
-				severity: 'Low'
+				checkName: 'Rate Limit Check',
+				endpoint: currentUrlString,
+				source: input.source,
+				severity: 'Low',
+				detail: {
+					rateLimiting: 'Enabled',
+					statusCode: minElement.value.statusCode,
+					requestNumber: minElement.value.number,
+				}
 			})
 		}
 		else {
 			result.push({
-				endpoint: newUrl.href,
-				rateLimiting: 'Enabled',
-				statusCode: minElement.value.statusCode,
-				requestNumber: minElement.value.number,
-				severity: 'High'
+				checkName: 'Rate Limit Check',
+				endpoint: currentUrlString,
+				source: input.source,
+				severity: 'High',
+				detail: {
+					rateLimiting: 'Enabled',
+					statusCode: minElement.value.statusCode,
+					requestNumber: minElement.value.number,
+				}
 			})
 		}
 	}

@@ -22,15 +22,15 @@ function generateTestURL(url) {
 export async function checkCorsMisconfig(url, pathMethod) {
     const endpointPromises = pathMethod.map(async (input) => {
         const endpointResults = [];
-        let newUrl = `${url}/${input.path}`;
+        let currentUrlString = `${url}/${input.path}`;
 
         try {
             const receivedUrl = new URL(input.path, url);
-            newUrl = receivedUrl;
+            currentUrlString = receivedUrl.href;
         } catch (error) {
             endpointResults.push({
                     checkName: 'CORS Misconfig',
-                    endpoint: newUrl,
+                    endpoint: currentUrlString,
                     source: input.source,
                     testable: false,
                     detail: {
@@ -42,16 +42,16 @@ export async function checkCorsMisconfig(url, pathMethod) {
             return endpointResults;
         }
 
-        const testScenarios = generateTestURL(newUrl);
+        const testScenarios = generateTestURL(currentUrlString);
 
         for (const newOriginURL of testScenarios) {
             try {
-                const responseObject = await makeRequest(newUrl, 'GET', { 'Origin': newOriginURL.originHeader });
+                const responseObject = await makeRequest(currentUrlString, 'GET', { 'Origin': newOriginURL.originHeader });
 
                 if (responseObject.headers?.['access-control-allow-origin'] === '*') {
                     endpointResults.push({
                         checkName: 'CORS Misconfig',
-                        endpoint: newUrl,
+                        endpoint: currentUrlString,
                         source: input.source,
                         severity: 'High',
                         detail: {
@@ -67,7 +67,8 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader && responseObject.headers?.['access-control-allow-credentials'] === 'true') {
                     endpointResults.push({
                         checkName: 'CORS Misconfig',
-                        endpoint: newUrl,
+                        endpoint: currentUrlString,
+                        source: input.source,
                         severity: 'Critical',
                         detail: {
                             method: input.method,
@@ -81,7 +82,8 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader) {
                     endpointResults.push({
                         checkName: 'CORS Misconfig',
-                        endpoint: newUrl,
+                        endpoint: currentUrlString,
+                        source: input.source,
                         severity: 'High',
                         detail: {
                             method: input.method,
@@ -95,7 +97,8 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 else if (!responseObject.headers?.['access-control-allow-origin'] && !responseObject.headers?.['access-control-allow-credentials']) {
                     // endpointResults.push({
                     //     checkName: 'CORS Misconfig',
-                    //     endpoint: newUrl.href,
+                    //     endpoint: currentUrlString,
+                    //     source: input.source,
                     //     severity: 'None',
                     //     detail: {
                     //         method: input.method,
@@ -111,7 +114,8 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 else {
                     // endpointResults.push({
                     //     checkName: 'CORS Misconfig',
-                    //     endpoint: newUrl.href,
+                    //     endpoint: currentUrlString,
+                    //     source: input.source,
                     //     severity: 'None',
                     //     detail: {
                     //         method: input.method,
@@ -127,7 +131,8 @@ export async function checkCorsMisconfig(url, pathMethod) {
             } catch (error) {
                 endpointResults.push({
                     checkName: 'CORS Misconfig',
-                    endpoint: newUrl,
+                    endpoint: currentUrlString,
+                    source: input.source,
                     testable: false,
                     detail: {
                         method: input.method,
