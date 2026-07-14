@@ -16,6 +16,12 @@ pathMethod.push({
 	source: 'default-base-check'
 })
 
+if (!inputUrl) {
+	console.log('Please provide a URL');
+	console.log('Proper Syntax for running the tool\n node main.js url');
+	process.exit(1);
+}
+
 if (!process.argv[3]){
 	console.log(`No path:method provided - Defaulting to Base URL and 'GET' method`);
 }
@@ -24,12 +30,6 @@ pathMethod.push(...process.argv.slice(3).map(arg => {
 	const [path, method] = arg.split(':');
 	return { path, method, source: 'user-specified' };
 }))
-
-if (!inputUrl) {
-	console.log('Please provide a URL');
-	console.log('Proper Syntax for running the tool\n node main.js url');
-	process.exit(1);
-}
 
 async function main(url) {
 

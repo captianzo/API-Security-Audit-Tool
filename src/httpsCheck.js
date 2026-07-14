@@ -2,17 +2,15 @@ export async function checkForHttps(url){
 	const urlObject = new URL(url);
 
 	if (urlObject.protocol !== 'https:'){
-		return {
+		return [{
+			checkName: 'HTTPS Check',
 			endpoint: urlObject.href,
-			protocol: urlObject.protocol,
-			severity: 'Critical'
-		};
+			source: 'default-base-check',
+			severity: 'Critical',
+			detail: {
+				protocol: urlObject.protocol,
+			}
+		}];
 	}
-	else {
-		return {
-			endpoint: urlObject.href,
-			protocol: urlObject.protocol,
-			severity: 'None'
-		};
-	}
+	return null;
 }
