@@ -6,6 +6,7 @@ import { checkMissingAuth } from './src/missingAuthDetection.js';
 import { requestHandler } from './src/rateLimitCheck.js';
 import { makeMultipleRequestsUsingQuerys } from './src/xssCheck.js';
 import { checkForHttps } from './src/httpsCheck.js';
+import { generateReport } from './src/reportGenerator.js';
 
 const inputUrl = process.argv[2];
 
@@ -48,49 +49,8 @@ async function main(url) {
 	const resultPromises = Object.values(result);
 
 	const resolvedResult = await Promise.allSettled(resultPromises);
-	const fulfilledCheckResults = [];
-	const rejectedCheckResults = [];
-
-	for (let i = 0; i < resolvedResult.length; i++) {
-		if (resolvedResult[i]?.status === 'rejected'){
-			rejectedCheckResults.push({
-				checkName: resultCheckNames[i],
-				reason: resolvedResult[i].reason
-			});
-		}
-		else {
-			if (resolvedResult[i]?.value === null){
-				fulfilledCheckResults.push([]);
-			}
-			else{
-				fulfilledCheckResults.push(resolvedResult[i].value);
-			}
-		}
-	}
-
-	const flatFulfilledCheckResults = fulfilledCheckResults.flat();
-	
-	console.log(flatFulfilledCheckResults);
-	console.log(rejectedCheckResults);
-
-	// Promise.allSettled(resultPromises).then(resolvedResult => {
-	// 	for (let i = 0; i < resultCheckNames.length; i++) {
-	// 		if (resolvedResult[i].value === null) {
-	// 			console.log(resultCheckNames[i], "\n", []);
-	// 			continue;
-	// 		}
-	// 		if (resolvedResult[i].status === 'rejected') {
-	// 			console.log('\nERROR PERFORMING CHECK FOR', resultCheckNames[i]);
-	// 		}
-	// 		else {
-	// 			console.log(resultCheckNames[i]);
-	// 			console.dir(resolvedResult[i].value, { depth: null });
-	// 		}
-	// 	}
-	// })
-	// 	.catch(err => {
-	// 		console.error(err);
-	// 	})
+	const generatedReport = generateReport(resolvedResult, resultCheckNames);
+	console.dir(generatedReport, { depth: null });
 }
 
 main(inputUrl);
