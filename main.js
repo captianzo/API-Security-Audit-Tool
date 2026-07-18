@@ -34,37 +34,63 @@ pathMethod.push(...process.argv.slice(3).map(arg => {
 async function main(url) {
 
 	const result = {
-		'MISSING HTTPS PROTOCOL': checkForHttps(url),
-		'RESPONSE HEADERS': checkHeaders(url, pathMethod),
-		'VERBOSE ERROR': checkVerboseErrors(url, pathMethod),
-		'CORS MISCONFIGURATION': checkCorsMisconfig(url, pathMethod),
-		'HTTP METHODS EXPOSURE': checkMethodExposure(url, pathMethod),
-		'MISSING AUTHENTICATION ON ENDPOINTS': checkMissingAuth(url, pathMethod),
-		'MISSING RATE LIMITING': requestHandler(url, pathMethod),
-		'CROSS SITE SCRIPTING (XSS)': makeMultipleRequestsUsingQuerys(url, pathMethod)
+		'HTTPS Check': checkForHttps(url),
+		'Security Headers Check': checkHeaders(url, pathMethod),
+		'Verbose Error': checkVerboseErrors(url, pathMethod),
+		'CORS Misconfiguration': checkCorsMisconfig(url, pathMethod),
+		'HTTP Methods Exposure': checkMethodExposure(url, pathMethod),
+		'Missing Authentication Detection': checkMissingAuth(url, pathMethod),
+		'Rate Limit Check': requestHandler(url, pathMethod),
+		'XSS Check': makeMultipleRequestsUsingQuerys(url, pathMethod)
 	};
 
 	const resultCheckNames = Object.keys(result);
 	const resultPromises = Object.values(result);
 
-	Promise.allSettled(resultPromises).then(resolvedResult => {
-		for (let i = 0; i < resultCheckNames.length; i++) {
-			if (resolvedResult[i].value === null) {
-				console.log(resultCheckNames[i], "\n", []);
-				continue;
+	const resolvedResult = await Promise.allSettled(resultPromises);
+	const fulfilledCheckResults = [];
+	const rejectedCheckResults = [];
+
+	for (let i = 0; i < resolvedResult.length; i++) {
+		if (resolvedResult[i]?.status === 'rejected'){
+			rejectedCheckResults.push({
+				checkName: resultCheckNames[i],
+				reason: resolvedResult[i].reason
+			});
+		}
+		else {
+			if (resolvedResult[i]?.value === null){
+				fulfilledCheckResults.push([]);
 			}
-			if (resolvedResult[i].status === 'rejected') {
-				console.log('\nERROR PERFORMING CHECK FOR', resultCheckNames[i]);
-			}
-			else {
-				console.log(resultCheckNames[i]);
-				console.dir(resolvedResult[i].value, { depth: null });
+			else{
+				fulfilledCheckResults.push(resolvedResult[i].value);
 			}
 		}
-	})
-		.catch(err => {
-			console.error(err);
-		})
+	}
+
+	const flatFulfilledCheckResults = fulfilledCheckResults.flat();
+	
+	console.log(flatFulfilledCheckResults);
+	console.log(rejectedCheckResults);
+
+	// Promise.allSettled(resultPromises).then(resolvedResult => {
+	// 	for (let i = 0; i < resultCheckNames.length; i++) {
+	// 		if (resolvedResult[i].value === null) {
+	// 			console.log(resultCheckNames[i], "\n", []);
+	// 			continue;
+	// 		}
+	// 		if (resolvedResult[i].status === 'rejected') {
+	// 			console.log('\nERROR PERFORMING CHECK FOR', resultCheckNames[i]);
+	// 		}
+	// 		else {
+	// 			console.log(resultCheckNames[i]);
+	// 			console.dir(resolvedResult[i].value, { depth: null });
+	// 		}
+	// 	}
+	// })
+	// 	.catch(err => {
+	// 		console.error(err);
+	// 	})
 }
 
 main(inputUrl);

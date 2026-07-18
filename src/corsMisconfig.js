@@ -29,7 +29,7 @@ export async function checkCorsMisconfig(url, pathMethod) {
             currentUrlString = receivedUrl.href;
         } catch (error) {
             endpointResults.push({
-                    checkName: 'CORS Misconfig',
+                    checkName: 'CORS Misconfiguration',
                     endpoint: currentUrlString,
                     source: input.source,
                     testable: false,
@@ -50,7 +50,7 @@ export async function checkCorsMisconfig(url, pathMethod) {
 
                 if (responseObject.headers?.['access-control-allow-origin'] === '*') {
                     endpointResults.push({
-                        checkName: 'CORS Misconfig',
+                        checkName: 'CORS Misconfiguration',
                         endpoint: currentUrlString,
                         source: input.source,
                         severity: 'High',
@@ -66,7 +66,7 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 }
                 else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader && responseObject.headers?.['access-control-allow-credentials'] === 'true') {
                     endpointResults.push({
-                        checkName: 'CORS Misconfig',
+                        checkName: 'CORS Misconfiguration',
                         endpoint: currentUrlString,
                         source: input.source,
                         severity: 'Critical',
@@ -81,7 +81,7 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 }
                 else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader) {
                     endpointResults.push({
-                        checkName: 'CORS Misconfig',
+                        checkName: 'CORS Misconfiguration',
                         endpoint: currentUrlString,
                         source: input.source,
                         severity: 'High',
@@ -96,7 +96,7 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 }
                 else if (!responseObject.headers?.['access-control-allow-origin'] && !responseObject.headers?.['access-control-allow-credentials']) {
                     // endpointResults.push({
-                    //     checkName: 'CORS Misconfig',
+                    //     checkName: 'CORS Misconfiguration',
                     //     endpoint: currentUrlString,
                     //     source: input.source,
                     //     severity: 'None',
@@ -113,7 +113,7 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 }
                 else {
                     // endpointResults.push({
-                    //     checkName: 'CORS Misconfig',
+                    //     checkName: 'CORS Misconfiguration',
                     //     endpoint: currentUrlString,
                     //     source: input.source,
                     //     severity: 'None',
@@ -130,7 +130,7 @@ export async function checkCorsMisconfig(url, pathMethod) {
                 }
             } catch (error) {
                 endpointResults.push({
-                    checkName: 'CORS Misconfig',
+                    checkName: 'CORS Misconfiguration',
                     endpoint: currentUrlString,
                     source: input.source,
                     testable: false,

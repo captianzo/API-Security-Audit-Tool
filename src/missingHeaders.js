@@ -19,7 +19,7 @@ export async function checkHeaders(url, pathMethod) {
 			currentUrlString = newUrl.href;
 		} catch (error) {
 			result.push({
-                checkName: 'Missing Security Headers',
+                checkName: 'Security Headers Check',
                 endpoint: currentUrlString,
 				source: input.source,
                 testable: false,
@@ -37,7 +37,7 @@ export async function checkHeaders(url, pathMethod) {
 			for (const currHeader of requiredHeaders) {
 				if (!responseObject.headers[currHeader.header]) {
 					result.push({
-						checkName: 'Missing Security Headers',
+						checkName: 'Security Headers Check',
 						endpoint: currentUrlString,
 						source: input.source,
 						severity: currHeader.severity,
@@ -51,7 +51,7 @@ export async function checkHeaders(url, pathMethod) {
 		}
 		catch (error) {
 			result.push({
-				checkName: 'Missing Security Headers',
+				checkName: 'Security Headers Check',
 				endpoint: currentUrlString,
 				source: input.source,
 				testable: false,
