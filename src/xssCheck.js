@@ -34,7 +34,8 @@ export async function makeMultipleRequestsUsingQuerys(url, pathMethod) {
 					detail: {
 						method: method,
 						reason: error.message
-					}
+					},
+					description: `XSS Check could not verify ${fallbackUrlString} at the URL Construction stage: ${error.message}`
 				}
 			}
 
@@ -58,12 +59,18 @@ export async function makeMultipleRequestsUsingQuerys(url, pathMethod) {
 					: false;
 
 				let severity;
+				let description = '';
+				let remediation = '';
 
 				if (reflectedInBody) {
 					severity = 'Critical';
+					description = `The endpoint reflects untrusted user input via the '${newParam}' parameter (specifically, a payload containing dangerous HTML characters like <, >, ", and ') directly into the HTTP response body without proper escaping. This confirms a Reflected Cross-Site Scripting (XSS) vulnerability, which allows an attacker to execute arbitrary malicious JavaScript in a victim's browser.`;
+					remediation = 'Implement strict, context-aware output encoding for all user-supplied data before rendering it in the response (e.g., convert < to &lt;). Utilize modern, security-focused templating engines that automatically escape variables, and never trust client-supplied input.';
 				}
 				else if (reflectedInHeaders) {
 					severity = 'Medium';
+					description = `The endpoint reflects untrusted user input via the '${newParam}' parameter directly into an HTTP response header without sanitization. While less directly exploitable for XSS than body reflection, this behavior can lead to HTTP Response Splitting, MIME-type sniffing bypasses, or cache poisoning.`;
+					remediation = 'Avoid reflecting user input in HTTP response headers. If it is strictly necessary, strongly validate the input against a strict allowlist and strip any newline characters (\\r, \\n) to prevent header injection and HTTP response splitting attacks.';
 				}
 
 				return {
@@ -76,21 +83,24 @@ export async function makeMultipleRequestsUsingQuerys(url, pathMethod) {
 						statusCode: responseObject.statusCode,
 						reflectedInHeaders,
 						reflectedInBody,
-					}
+					},
+					// Only attach description/remediation if a vulnerability was actually found
+					...(severity && { description, remediation })
 				};
 			} catch (error) {
 				return {
-                    checkName: 'XSS Check',
-                    endpoint: urlObject.href,
-                    source: source,
-                    testable: false,
-                    detail: {
-                        method: method,
-                        reason: error.message
-                    }
-                };
+					checkName: 'XSS Check',
+					endpoint: urlObject.href,
+					source: source,
+					testable: false,
+					detail: {
+						stage: 'response capturing',
+						method: method,
+						reason: error.message
+					},
+					description: `XSS Check could not verify ${urlObject.href} at the Response Capturing stage: ${error.message}`
+				};
 			}
-
 		});
 
 		allPromises.push(...pathRequests);
@@ -99,7 +109,7 @@ export async function makeMultipleRequestsUsingQuerys(url, pathMethod) {
 	const allSettledRequests = await Promise.allSettled(allPromises);
 
 	return allSettledRequests.reduce((acc, request) => {
-		if (request.status === 'fulfilled' && ((request.value.reflectedInHeaders || request.value.reflectedInBody) || Object.hasOwn(request.value, 'testable'))) {
+		if (request.status === 'fulfilled' && ((request.value.detail.reflectedInHeaders || request.value.detail.reflectedInBody) || Object.hasOwn(request.value, 'testable'))) {
 			acc.push(request.value);
 		}
 
