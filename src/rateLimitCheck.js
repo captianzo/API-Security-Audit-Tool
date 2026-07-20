@@ -30,7 +30,8 @@ export async function requestHandler(url, pathMethod) {
 					method: input.method,
 					stage: 'url construction',
 					reason: error.message
-				}
+				},
+				description: `Rate Limit Check could not verify ${currentUrlString} at the URL Construction stage: ${error.message}`
 			})
 			continue;
 		}
@@ -52,7 +53,9 @@ export async function requestHandler(url, pathMethod) {
 				severity: 'Critical',
 				detail: {
 					rateLimiting: 'Disabled',
-				}
+				},
+				description: 'No rate limiting was detected. The endpoint successfully processed a high volume of rapid requests without blocking.',
+				remediation: 'Implement rate limiting (returning HTTP 429) per IP or user session to prevent denial-of-service, automated scraping, and brute-force attacks.'
 			})
 			continue;
 		}
@@ -62,17 +65,6 @@ export async function requestHandler(url, pathMethod) {
 		});
 
 		if (minElement.value.number >= 1 && minElement.value.number <= 20) {
-			// result.push({
-			// 	checkName: 'Rate Limit Check',
-			// 	endpoint: currentUrlString,
-			// 	source: input.source,
-			// 	severity: 'None',
-			// 	detail: {
-			// 		rateLimiting: 'Enabled',
-			// 		statusCode: minElement.value.statusCode,
-			// 		requestNumber: minElement.value.number,
-			// 	}
-			// })
 			continue;
 		}
 
@@ -86,7 +78,9 @@ export async function requestHandler(url, pathMethod) {
 					rateLimiting: 'Enabled',
 					statusCode: minElement.value.statusCode,
 					requestNumber: minElement.value.number,
-				}
+				},
+				description: 'Rate limiting is active but allows moderate bursting (up to 50 requests). This is generally safe for standard APIs, but poses a risk if this endpoint handles authentication.',
+				remediation: 'Review the endpoint context. If it handles sensitive actions like login or password reset, tighten the limit to under 10 requests per minute. Otherwise, the current burst limit is acceptable.'
 			})
 		}
 		else {
@@ -99,7 +93,9 @@ export async function requestHandler(url, pathMethod) {
 					rateLimiting: 'Enabled',
 					statusCode: minElement.value.statusCode,
 					requestNumber: minElement.value.number,
-				}
+				},
+				description: 'Rate limiting is active but highly permissive, only blocking after 50+ rapid requests. This still allows attackers to sustain high-volume automated attacks and scraping.',
+				remediation: 'Sharply reduce the allowed request threshold. Apply strict limits (e.g., 5-10 requests/minute) for sensitive endpoints and moderate limits (e.g., 30 requests/minute) for general data access.'
 			})
 		}
 	}
