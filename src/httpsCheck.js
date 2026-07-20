@@ -9,7 +9,9 @@ export async function checkForHttps(url){
 			severity: 'Critical',
 			detail: {
 				protocol: urlObject.protocol,
-			}
+			},
+			description: 'The endpoint is served over HTTP instead of HTTPS, exposing transmitted data to interception.',
+			remediation: 'Obtain a TLS certificate and configure the server to redirect all HTTP traffic to HTTPS. Enable HSTS to prevent future downgrade attempts.'
 		}];
 	}
 	return null;
