@@ -52,7 +52,10 @@ export function segregateSeverityAndUntestable(flatFulfilledCheckResults, reject
 		if (!toolErrors[currentResultObject.checkName]) {
 			toolErrors[currentResultObject.checkName] = [];
 		}
-		toolErrors[currentResultObject.checkName].push(currentResultObject.reason);
+		toolErrors[currentResultObject.checkName].push({
+			reason: currentResultObject.reason,
+			description: `${currentResultObject.checkName} failed due to: ${currentResultObject.reason.message}`
+		});
 	}
 
 	return {bySeverity, untestable, toolErrors};

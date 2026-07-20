@@ -23,7 +23,7 @@ if (!inputUrl) {
 	process.exit(1);
 }
 
-if (!process.argv[3]){
+if (!process.argv[3]) {
 	console.log(`No path:method provided - Defaulting to Base URL and 'GET' method`);
 }
 
@@ -49,6 +49,37 @@ async function main(url) {
 	const resultPromises = Object.values(result);
 
 	const resolvedResult = await Promise.allSettled(resultPromises);
+
+
+	// --- TEMPORARY INSTRUMENTATION START ---
+	const debugTargets = [
+		'checkCorsMisconfig', 'checkMethodExposure', 'makeMultipleRequestsUsingQuerys',
+		'CORS', 'HTTP Methods Exposure', 'XSS Check'
+	];
+
+	resolvedResult.forEach((res, index) => {
+		const checkName = resultCheckNames[index];
+
+		// Only log if the checkName matches one of our targets
+		const isTarget = debugTargets.some(target => checkName.includes(target));
+
+		if (isTarget) {
+			console.log(`\n[DEBUG] ---> Check: ${checkName}`);
+			console.log(`[DEBUG] Status: ${res.status}`);
+
+			if (res.status === 'fulfilled') {
+				const val = res.value;
+				console.log(`[DEBUG] Is Array?: ${Array.isArray(val)}`);
+				console.log(`[DEBUG] Length: ${Array.isArray(val) ? val.length : 'N/A'}`);
+				console.dir(val, { depth: null, colors: true });
+			} else {
+				console.error(`[DEBUG] REJECTED Reason:`, res.reason);
+			}
+		}
+	});
+	// --- TEMPORARY INSTRUMENTATION END ---
+	
+
 	const generatedReport = generateReport(resolvedResult, resultCheckNames);
 	console.dir(generatedReport, { depth: null });
 }
