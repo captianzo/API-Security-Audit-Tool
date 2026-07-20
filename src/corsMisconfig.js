@@ -36,7 +36,8 @@ export async function checkCorsMisconfig(url, pathMethod) {
                     detail: {
                         stage: 'url construction',
                         reason: error.message
-                    }
+                    },
+                    description: `CORS Check could not verify ${currentUrlString} at the URL Construction stage: ${error.message}`
                 }
             );
             return endpointResults;
@@ -46,7 +47,7 @@ export async function checkCorsMisconfig(url, pathMethod) {
 
         for (const newOriginURL of testScenarios) {
             try {
-                const responseObject = await makeRequest(currentUrlString, 'GET', { 'Origin': newOriginURL.originHeader });
+                const responseObject = await makeRequest(currentUrlString, input.method, { 'Origin': newOriginURL.originHeader });
 
                 if (responseObject.headers?.['access-control-allow-origin'] === '*') {
                     endpointResults.push({
@@ -60,7 +61,9 @@ export async function checkCorsMisconfig(url, pathMethod) {
                             status: 'Present',
                             value: '*',
                             originUsed: newOriginURL.originHeader,
-                        }
+                        },
+                        description: 'The endpoint explicitly allows cross-origin access from any domain using the wildcard (*) origin header. This permits arbitrary external websites to read the HTTP response.',
+                        remediation: 'Restrict the Access-Control-Allow-Origin header to a strict whitelist of trusted domains. Do not use wildcards unless the endpoint is specifically intended to be a fully public API.'
                     });
                     break;
                 }
@@ -76,7 +79,9 @@ export async function checkCorsMisconfig(url, pathMethod) {
                             status: 'Present',
                             value: newOriginURL.originHeader, 
                             originUsed: newOriginURL.originHeader,
-                        }
+                        },
+                        description: "The endpoint blindly reflects the attacker-supplied Origin and allows credentials. This allows any malicious website to force a victim's browser to make authenticated requests and steal the sensitive response.",
+                        remediation: 'Never combine dynamic Origin reflection with Access-Control-Allow-Credentials: true. Implement a strict, hardcoded server-side whitelist of trusted domains.'
                     });
                 }
                 else if (responseObject.headers?.['access-control-allow-origin'] === newOriginURL.originHeader) {
@@ -91,7 +96,9 @@ export async function checkCorsMisconfig(url, pathMethod) {
                             status: 'Present',
                             value: newOriginURL.originHeader,
                             originUsed: newOriginURL.originHeader,
-                        }
+                        },
+                        description: 'The endpoint blindly reflects the attacker-supplied Origin header back into the response. While credentials are not permitted, any arbitrary website can still read unauthenticated responses from this endpoint.',
+                        remediation: 'Stop dynamically echoing the user-supplied Origin header. Configure the server CORS policy to use a strict whitelist of approved domains.'
                     });
                 }
                 else if (!responseObject.headers?.['access-control-allow-origin'] && !responseObject.headers?.['access-control-allow-credentials']) {
@@ -136,10 +143,11 @@ export async function checkCorsMisconfig(url, pathMethod) {
                     testable: false,
                     detail: {
                         method: input.method,
-                        status: 'Untestable',
+                        stage: 'response capturing',
                         originUsed: newOriginURL.originHeader,
                         reason: error.message
-                    }
+                    },
+                    description: `CORS Misconfiguration Check could not verify ${currentUrlString} at the Response Capturing stage: ${error.message}`
                 });
             }
         }
