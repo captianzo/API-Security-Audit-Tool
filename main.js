@@ -7,6 +7,7 @@ import { requestHandler } from './src/rateLimitCheck.js';
 import { makeMultipleRequestsUsingQuerys } from './src/xssCheck.js';
 import { checkForHttps } from './src/httpsCheck.js';
 import { generateReport } from './src/reportGenerator.js';
+import { displayResults } from './src/reportGenerator.js';
 
 const inputUrl = process.argv[2];
 
@@ -50,8 +51,9 @@ async function main(url) {
 
 	const resolvedResult = await Promise.allSettled(resultPromises);
 
-	const generatedReport = generateReport(resolvedResult, resultCheckNames);
-	console.dir(generatedReport, { depth: null });
+	const {bySeverity, untestable, toolErrors} = generateReport(resolvedResult, resultCheckNames);
+	// console.dir(generatedReport, { depth: null });
+	displayResults(bySeverity, untestable, toolErrors, inputUrl);
 }
 
 main(inputUrl);
