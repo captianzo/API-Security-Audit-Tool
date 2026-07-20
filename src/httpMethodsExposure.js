@@ -12,40 +12,39 @@ async function makeOptionsRequest(url, source) {
                 checkName: 'HTTP Methods Exposure',
                 endpoint: url,
                 source: source,
-                severity: 'Medium',
+                severity: 'Medium', // Advertised, but dangerous by nature
                 detail: {
                     header: 'allow',
                     status: 'Present',
                     value: 'TRACE',
-                }
+                },
+                description: 'The endpoint\'s OPTIONS response explicitly lists the TRACE method in its Allow header. While this doesn\'t confirm exploitability, TRACE is a diagnostic method that can be abused for Cross-Site Tracing (XST) attacks.',
+                remediation: 'Disable the TRACE method globally in the web server configuration (e.g., \'TraceEnable off\' in Apache) to prevent potential XST attacks, which will automatically remove it from the Allow header.'
             });
         }
-        if (allowHeader.includes('PUT')) {
-            findings.push({
-                checkName: 'HTTP Methods Exposure',
-                endpoint: url,
-                source: source,
-                severity: 'Low',
-                detail: {
-                    header: 'allow',
-                    status: 'Present',
-                    value: 'PUT',
-                }
-            });
-        }
-        if (allowHeader.includes('DELETE')) {
-            findings.push({
-                checkName: 'HTTP Methods Exposure',
-                endpoint: url,
-                source: source,
-                severity: 'Low',
-                detail: {
-                    header: 'allow',
-                    status: 'Present',
-                    value: 'DELETE',
-                }
-            });
-        }
+        
+        // Helper to push PUT and DELETE
+        const checkStateChangingMethod = (methodName) => {
+            if (allowHeader.includes(methodName)) {
+                findings.push({
+                    checkName: 'HTTP Methods Exposure',
+                    endpoint: url,
+                    source: source,
+                    severity: 'Low', // Kept Low because it's just an advertisement, not a confirmed bypass
+                    detail: {
+                        header: 'allow',
+                        status: 'Present',
+                        value: methodName,
+                    },
+                    description: `The endpoint advertises support for the ${methodName} method in its Allow header. While this does not guarantee the method is unauthenticated or exploitable, it provides attackers with reconnaissance data about state-changing API capabilities.`,
+                    remediation: `Verify that ${methodName} requests to this endpoint are strictly authenticated and authorized. If the application does not actually utilize this method here, configure the routing framework to reject it and remove it from the Allow header.`
+                });
+            }
+        };
+
+        checkStateChangingMethod('PUT');
+        checkStateChangingMethod('POST');
+        checkStateChangingMethod('DELETE');
     }
 
     return findings;
@@ -59,11 +58,13 @@ async function makeTraceRequest(url, source) {
             checkName: 'HTTP Methods Exposure',
             endpoint: url,
             source: source,
-            severity: 'Medium',
+            severity: 'High', // Upgraded to High because the vulnerability is successfully confirmed
             detail: {
                 header: 'TRACE',
                 status: 'Present',
-            }
+            },
+            description: 'The server successfully executed a TRACE request and returned a 200 OK status. This confirms the endpoint actively reflects requests, exposing the application to Cross-Site Tracing (XST) attacks which can be used to bypass HttpOnly flags and steal session cookies.',
+            remediation: 'Immediately disable the TRACE method on the web server (e.g., set \'TraceEnable off\' in Apache, or configure the application proxy/framework to outright reject TRACE requests). Diagnostic HTTP methods should never be enabled in production.'
         };
     }
     return null; 
@@ -87,7 +88,8 @@ export async function checkMethodExposure(url, pathMethod) {
                 detail: {
                     stage: 'url construction',
                     reason: error.message
-                }
+                },
+                description: `HTTP Methods Exposure Check could not verify ${currentUrlString} at the URL Construction stage: ${error.message}`
             })
             return;
         }
@@ -105,7 +107,8 @@ export async function checkMethodExposure(url, pathMethod) {
                 detail: {
                     method: 'OPTIONS',
                     reason: error.message
-                }
+                },
+                description: `HTTP Methods Exposure Check could not verify ${currentUrlString} at the Response Capturing for OPTIONS Request stage: ${error.message}`
             })
         }
         
@@ -123,7 +126,8 @@ export async function checkMethodExposure(url, pathMethod) {
                 detail: {
                     method: 'TRACE',
                     reason: error.message
-                }
+                },
+                description: `HTTP Methods Exposure Check could not verify ${currentUrlString} at the Response Capturing for TRACE Request stage: ${error.message}`
             })
         }
     }))
