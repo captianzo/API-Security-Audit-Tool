@@ -1,4 +1,7 @@
 import chalk from 'chalk';
+import fs from 'fs';
+import url from 'node:url';
+import path from 'node:path';
 
 export function normalizedResults(resolvedResult, resultCheckNames) {
 	const fulfilledCheckResults = [];
@@ -55,6 +58,7 @@ export function segregateSeverityAndUntestable(flatFulfilledCheckResults, reject
 			toolErrors[currentResultObject.checkName] = [];
 		}
 		toolErrors[currentResultObject.checkName].push({
+			checkName: currentResultObject.checkName,
 			reason: currentResultObject.reason,
 			description: `${currentResultObject.checkName} failed due to: ${currentResultObject.reason.message}`
 		});
@@ -128,7 +132,7 @@ function divider(char = '=') {
 function severitydisplayHelper(checkName, endpoint, severity, description, remediation) {
 	const color = colorForSeverity(severity);
 	const icon = iconForSeverity(severity);
-	console.log(color.bold(`${icon} [${severity}]`), chalk.bold(checkName));
+	console.log(color.bold(`${icon} [${severity}]`), chalk.cyan.bold(checkName));
 	printWrappedField('Endpoint', endpoint);
 	printWrappedField('Description', description);
 	printWrappedField('Remediation', remediation);
@@ -136,14 +140,14 @@ function severitydisplayHelper(checkName, endpoint, severity, description, remed
 }
 
 function untestableDisplayHelper(checkName, endpoint, description) {
-	console.log(chalk.cyan.bold(`❓ [${checkName}]`));
+	console.log(chalk.bold(`❓ [`) + chalk.cyan.bold(checkName) + chalk.bold(`]`));
 	printWrappedField('Endpoint', endpoint);
 	printWrappedField('Description', description);
 	console.log('');
 }
 
 function toolErrorDisplayHelper(checkName, description) {
-	console.log(chalk.magenta.bold(`⚠️  [${checkName}]`));
+	console.log(chalk.magenta.bold(`⚠️  [`) + chalk.cyan.bold(checkName) + chalk.magenta.bold(`]`));
 	printWrappedField('Description', description);
 	console.log('');
 }
@@ -219,9 +223,66 @@ export function displayResults(bySeverity, untestable, toolErrors, baseUrl) {
 			});
 		});
 	}
+}
 
-	// ---- Footer ----
-	divider();
-	console.log(chalk.dim('  Full report saved to: audit-report.json'));
-	divider();
+export function writeJsonReport(bySeverity, untestable, toolErrors, baseUrl) {
+	const osPath = url.fileURLToPath(import.meta.url);
+	const dir = path.dirname(osPath);
+	const reportsDirectory = path.join(dir, '..', 'reports');
+
+	const sanitizedUrl = baseUrl
+		.replace(/^https?:\/\//, "")
+		.replace(/[:/]/g, "_");
+
+	const timestamp = new Date()
+		.toISOString()
+		.replace(/\.\d{3}Z$/, "")
+		.replace("T", "_")
+		.replace(/:/g, "-");
+
+	const reportFilename = `${sanitizedUrl}_${timestamp}.json`;
+	const fullPath = path.join(reportsDirectory, reportFilename);
+
+	const flatArrayOfFindings = [
+		...bySeverity.Critical, ...bySeverity.High, ...bySeverity.Medium, ...bySeverity.Low,
+		...Object.values(untestable).flat(),
+		...Object.values(toolErrors).flat()
+	];
+
+	const reportObject = {
+		meta: {
+			target: baseUrl,
+			scannedAt: new Date().toISOString(),
+			totalFindings: flatArrayOfFindings.length,
+			summary: {
+				Critical: bySeverity.Critical.length,
+				High: bySeverity.High.length,
+				Medium: bySeverity.Medium.length,
+				Low: bySeverity.Low.length,
+				Untestable: countTotalFindings(untestable),
+				ToolErrors: countTotalFindings(toolErrors)
+			}
+		}, findings: flatArrayOfFindings
+	};
+
+	try {
+		fs.mkdirSync(reportsDirectory, { recursive: true });
+		fs.writeFileSync(fullPath, JSON.stringify(reportObject, null, 2));
+
+		// const fullPath = reportsDirectory;
+		// fs.writeFileSync(fullPath, "test");
+
+		divider();
+		console.log(chalk.dim(`  Full report saved to: ${fullPath}`));
+		divider();
+
+		return { success: true, path: fullPath };
+	} catch (error) {
+		divider();
+		console.log(chalk.magenta.bold(`⚠️  [`) + chalk.cyan.bold('Report Writer') + chalk.magenta.bold(`]`));
+		printWrappedField('Description', `Could not write report to disk: ${error.message}`);
+		divider();
+
+		return { success: false, path: null, reason: error.message };
+	}
 }

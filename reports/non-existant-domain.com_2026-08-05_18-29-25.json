@@ -1,0 +1,483 @@
+{
+  "meta": {
+    "target": "http://non-existant-domain.com",
+    "scannedAt": "2026-08-05T18:29:25.389Z",
+    "totalFindings": 39,
+    "summary": {
+      "Critical": 1,
+      "High": 0,
+      "Medium": 0,
+      "Low": 0,
+      "Untestable": 38,
+      "ToolErrors": 0
+    }
+  },
+  "findings": [
+    {
+      "checkName": "HTTPS Check",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "severity": "Critical",
+      "detail": {
+        "protocol": "http:"
+      },
+      "description": "The endpoint is served over HTTP instead of HTTPS, exposing transmitted data to interception.",
+      "remediation": "Obtain a TLS certificate and configure the server to redirect all HTTP traffic to HTTPS. Enable HSTS to prevent future downgrade attempts."
+    },
+    {
+      "checkName": "Security Headers Check",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "GET",
+        "stage": "response capturing",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "Security Headers Check could not verify http://non-existant-domain.com/ at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "Verbose Error",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "Verbose Error Check could not verify http://non-existant-domain.com/ at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "CORS Misconfiguration",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "GET",
+        "stage": "response capturing",
+        "originUsed": "http://non-existant-domain.evil.com",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "CORS Misconfiguration Check could not verify http://non-existant-domain.com/ at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "CORS Misconfiguration",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "GET",
+        "stage": "response capturing",
+        "originUsed": "http://evil-non-existant-domain.com",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "CORS Misconfiguration Check could not verify http://non-existant-domain.com/ at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "CORS Misconfiguration",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "GET",
+        "stage": "response capturing",
+        "originUsed": "null",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "CORS Misconfiguration Check could not verify http://non-existant-domain.com/ at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "HTTP Methods Exposure",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "OPTIONS",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "HTTP Methods Exposure Check could not verify http://non-existant-domain.com/ at the Response Capturing for OPTIONS Request stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "HTTP Methods Exposure",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "TRACE",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "HTTP Methods Exposure Check could not verify http://non-existant-domain.com/ at the Response Capturing for TRACE Request stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "Missing Authentication Detection",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "Missing Authentication Detection Check could not verify http://non-existant-domain.com/ at the Request Execution stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "Rate Limit Check",
+      "endpoint": "http://non-existant-domain.com/",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "method": "GET",
+        "stage": "request execution",
+        "reason": "Too many requests rejected (100/100)"
+      },
+      "description": "Rate Limit Check could not verify http://non-existant-domain.com/ at the Request Execution stage: 100 out of 100 requests failed unexpectedly."
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?id=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?id=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?user=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?user=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?uid=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?uid=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?account=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?account=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?session=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?session=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?action=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?action=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?cmd=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?cmd=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?task=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?task=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?execute=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?execute=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?do=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?do=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?page=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?page=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?redirect=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?redirect=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?url=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?url=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?next=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?next=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?back=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?back=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?q=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?q=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?query=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?query=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?search=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?search=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?sort=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?sort=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?filter=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?filter=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?utm_source=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?utm_source=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?utm_medium=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?utm_medium=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?ref=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?ref=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?referrer=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?referrer=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?name=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?name=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?input=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?input=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?text=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?text=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?comment=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?comment=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    },
+    {
+      "checkName": "XSS Check",
+      "endpoint": "http://non-existant-domain.com/?message=XSSCANARY123%3C%3E%22%27",
+      "source": "default-base-check",
+      "testable": false,
+      "detail": {
+        "stage": "response capturing",
+        "method": "GET",
+        "reason": "getaddrinfo ENOTFOUND non-existant-domain.com"
+      },
+      "description": "XSS Check could not verify http://non-existant-domain.com/?message=XSSCANARY123%3C%3E%22%27 at the Response Capturing stage: getaddrinfo ENOTFOUND non-existant-domain.com"
+    }
+  ]
+}

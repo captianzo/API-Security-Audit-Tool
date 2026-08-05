@@ -8,6 +8,7 @@ import { makeMultipleRequestsUsingQuerys } from './src/xssCheck.js';
 import { checkForHttps } from './src/httpsCheck.js';
 import { generateReport } from './src/reportGenerator.js';
 import { displayResults } from './src/reportGenerator.js';
+import { writeJsonReport } from './src/reportGenerator.js';
 
 const inputUrl = process.argv[2];
 
@@ -52,8 +53,10 @@ async function main(url) {
 	const resolvedResult = await Promise.allSettled(resultPromises);
 
 	const {bySeverity, untestable, toolErrors} = generateReport(resolvedResult, resultCheckNames);
-	// console.dir(generatedReport, { depth: null });
 	displayResults(bySeverity, untestable, toolErrors, inputUrl);
+
+	// used later for CI/CD exit-code logic
+	const jsonWriteResult = writeJsonReport(bySeverity, untestable, toolErrors, inputUrl);
 }
 
 main(inputUrl);

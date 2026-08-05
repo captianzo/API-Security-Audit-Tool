@@ -43,6 +43,24 @@ export async function requestHandler(url, pathMethod) {
 
 		const resolvedRequests = Promise.allSettled(requests);
 
+		const rejectedCount = (await resolvedRequests).filter(request => request.status === 'rejected').length;
+
+		if (rejectedCount > 10) {
+			result.push({
+				checkName: 'Rate Limit Check',
+				endpoint: currentUrlString,
+				source: input.source,
+				testable: false,
+				detail: {
+					method: input.method,
+					stage: 'request execution',
+					reason: `Too many requests rejected (${rejectedCount}/100)`
+				},
+				description: `Rate Limit Check could not verify ${currentUrlString} at the Request Execution stage: ${rejectedCount} out of 100 requests failed unexpectedly.`
+			});
+			continue;
+		}
+
 		const filteredRequests = (await resolvedRequests).filter(request => allowedStatusCodes.includes(request?.value?.statusCode))
 
 		if (filteredRequests.length === 0) {
