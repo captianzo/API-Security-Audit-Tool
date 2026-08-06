@@ -20,19 +20,6 @@ const riskProfiles = {
     }
 };
 
-function calculateSeverity(baseSeverity, statusCode) {
-    if (statusCode >= 500) {
-        // 500s are actual crashes. Keep base or elevate.
-        return baseSeverity === 'Medium' ? 'High' : baseSeverity;
-    }
-    if (statusCode === 404) {
-        // 404s are usually framework routing debug pages. Downgrade to minimize noise.
-        return 'Low';
-    }
-    // For 400s or weird 200s, trust the base severity of the pattern
-    return baseSeverity;
-}
-
 export async function checkVerboseErrors(url, pathMethod) {
     const result = [];
 
@@ -95,19 +82,28 @@ export async function checkVerboseErrors(url, pathMethod) {
 
             // Helper to build consistent report payload from profile matching
             const createReportEntry = (indicator, matchedPatternText) => {
-                const finalSeverity = calculateSeverity(indicator.baseSeverity, statusCode);
+                const finalSeverity = statusCode >= 500
+                    ? (indicator.baseSeverity === 'Medium' ? 'High' : indicator.baseSeverity)
+                    : indicator.baseSeverity;
+                    
                 const profile = riskProfiles[indicator.profile];
+
+                const detail = {
+                    statusCode: statusCode,
+                    matchedPattern: matchedPatternText,
+                    profileKey: indicator.profile
+                };
+
+                if (statusCode === 404) {
+                    detail.respondedWith404 = true;
+                }
 
                 return {
                     checkName: 'Verbose Error',
                     endpoint: currentUrlString,
                     source: input.source,
                     severity: finalSeverity,
-                    detail: {
-                        statusCode: statusCode,
-                        matchedPattern: matchedPatternText,
-                        profileKey: indicator.profile
-                    },
+                    detail: detail,
                     description: profile.description,
                     remediation: profile.remediation
                 };
