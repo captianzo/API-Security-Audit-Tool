@@ -152,16 +152,28 @@ function toolErrorDisplayHelper(checkName, description) {
 	console.log('');
 }
 
-// Helper to count total findings across all keys of an object-of-arrays
+// Helper to count total results across all keys of an object-of-arrays
 // (used for untestable/toolErrors, which are keyed by checkName rather than severity)
-function countTotalFindings(groupedObject) {
+function countResultsInGroup(groupedObject) {
 	let total = 0;
-	for (const findings of Object.values(groupedObject)) {
-		total += findings.length;
+	for (const elements of Object.values(groupedObject)) {
+		total += elements.length;
 	}
 	return total;
 }
 
+// Grand total across all three grouped result sets (severity findings,
+// untestable, and tool errors), so displayResults and writeJsonReport
+// compute "total" the exact same way instead of two independent tallies.
+function countTotalResults(bySeverity, untestable, toolErrors) {
+	let absoluteTotal = 0;
+
+	absoluteTotal += countResultsInGroup(bySeverity);
+	absoluteTotal += countResultsInGroup(untestable);
+	absoluteTotal += countResultsInGroup(toolErrors);
+
+	return absoluteTotal;
+}
 
 // Main display function
 export function displayResults(bySeverity, untestable, toolErrors, baseUrl) {
@@ -171,7 +183,16 @@ export function displayResults(bySeverity, untestable, toolErrors, baseUrl) {
 	divider();
 	console.log('');
 
+	// ---- Grand total (findings + untestable + tool errors) ----
+	const totalResultCount = countTotalResults(bySeverity, untestable, toolErrors);
+	divider();
+	console.log(chalk.bold(`  Total Results: ${totalResultCount}`));
+	divider();
+	console.log('');
+
 	// ---- Severity summary block ----
+	console.log(chalk.bold(`  SEVERITY BREAKDOWN`));
+	divider('-');
 	let totalFindings = 0;
 	Object.entries(bySeverity).forEach(([severity, findings]) => {
 		totalFindings += findings.length;
@@ -180,7 +201,15 @@ export function displayResults(bySeverity, untestable, toolErrors, baseUrl) {
 		console.log(`  ${icon} ${color.bold(severity.toUpperCase().padEnd(10))} ${chalk.bold(findings.length)}`);
 	});
 	divider('-');
-	console.log(chalk.bold(`  TOTAL      ${totalFindings} findings`));
+	console.log(chalk.bold(`  TOTAL      ${totalFindings} Confirmed findings`));
+	divider();
+	console.log('');
+
+	// ---- Untestable / Tool Errors counts (quick summary; full detail sections below) ----
+	const totalUntestableCount = countResultsInGroup(untestable);
+	const totalToolErrorsCount = countResultsInGroup(toolErrors);
+	console.log(chalk.cyan.bold(`  Untestable:   ${totalUntestableCount}`));
+	console.log(chalk.magenta.bold(`  Tool Errors:  ${totalToolErrorsCount}`));
 	divider();
 	console.log('');
 
@@ -195,10 +224,9 @@ export function displayResults(bySeverity, untestable, toolErrors, baseUrl) {
 	});
 
 	// ---- Untestable section ----
-	const totalUntestable = countTotalFindings(untestable);
-	if (totalUntestable > 0) {
+	if (totalUntestableCount > 0) {
 		divider();
-		console.log(chalk.cyan.bold(`  UNTESTABLE  ${totalUntestable}`));
+		console.log(chalk.cyan.bold(`  UNTESTABLE  ${totalUntestableCount}`));
 		divider();
 		console.log('');
 
@@ -210,10 +238,9 @@ export function displayResults(bySeverity, untestable, toolErrors, baseUrl) {
 	}
 
 	// ---- Tool errors section ----
-	const totalToolErrors = countTotalFindings(toolErrors);
-	if (totalToolErrors > 0) {
+	if (totalToolErrorsCount > 0) {
 		divider();
-		console.log(chalk.magenta.bold(`  TOOL ERRORS  ${totalToolErrors}`));
+		console.log(chalk.magenta.bold(`  TOOL ERRORS  ${totalToolErrorsCount}`));
 		divider();
 		console.log('');
 
@@ -253,14 +280,17 @@ export function writeJsonReport(bySeverity, untestable, toolErrors, baseUrl) {
 		meta: {
 			target: baseUrl,
 			scannedAt: new Date().toISOString(),
-			totalFindings: flatArrayOfFindings.length,
 			summary: {
-				Critical: bySeverity.Critical.length,
-				High: bySeverity.High.length,
-				Medium: bySeverity.Medium.length,
-				Low: bySeverity.Low.length,
-				Untestable: countTotalFindings(untestable),
-				ToolErrors: countTotalFindings(toolErrors)
+				totalResults: countTotalResults(bySeverity, untestable, toolErrors),
+				confirmedFindings: countResultsInGroup(bySeverity),
+				severity: {
+					Critical: bySeverity.Critical.length,
+					High: bySeverity.High.length,
+					Medium: bySeverity.Medium.length,
+					Low: bySeverity.Low.length,
+				},
+				untestable: countResultsInGroup(untestable),
+				toolErrors: countResultsInGroup(toolErrors)
 			}
 		}, findings: flatArrayOfFindings
 	};
@@ -268,9 +298,6 @@ export function writeJsonReport(bySeverity, untestable, toolErrors, baseUrl) {
 	try {
 		fs.mkdirSync(reportsDirectory, { recursive: true });
 		fs.writeFileSync(fullPath, JSON.stringify(reportObject, null, 2));
-
-		// const fullPath = reportsDirectory;
-		// fs.writeFileSync(fullPath, "test");
 
 		divider();
 		console.log(chalk.dim(`  Full report saved to: ${fullPath}`));
