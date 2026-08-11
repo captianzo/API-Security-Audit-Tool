@@ -1,6 +1,6 @@
 # API Security Audit Tool
 
-A Node.js CLI tool that scans a live API for common security misconfigurations and produces a structured, severity-ranked vulnerability report — directly in your terminal.
+A Node.js CLI tool that scans a live API for common security misconfigurations and produces a structured, severity-ranked vulnerability report — directly in your terminal, and as JSON for downstream tooling.
 
 Point it at a base URL and a list of endpoints, and it runs a set of independent security checks concurrently, then prints findings grouped by severity (Critical → Low), with a description and remediation for each.
 
@@ -33,15 +33,17 @@ Every check here was written and verified against a live vulnerable target (VAmP
 
 Each finding includes a severity rating, the affected endpoint, a hand-written description of the risk, and a remediation.
 
+**Known limitation:** the XSS check currently only tests query-parameter reflection — it does not yet cover path-parameter injection or JSON request-body reflection. This is a known, deliberately scoped gap, not an oversight.
+
 ---
 
 ## Architecture — the three-stage pipeline
 
 The tool is built as three deliberately sequenced stages:
 
-1. **Ingestion (Input)** — currently a base URL + manually specified `path:method` pairs. An OpenAPI/Swagger parser is planned but intentionally deferred (see Roadmap) until output/reporting is fully solid.
+1. **Ingestion (Input)** — currently a base URL + manually specified `path:method` pairs (every scan also automatically includes a base-URL `GET /` sanity check, tagged separately from user-specified endpoints). An OpenAPI/Swagger parser is planned but intentionally deferred until the check-correctness backlog is fully clear.
 2. **Execution (Engine)** — the 8 checks above. Fully independent of input source; each check just receives a URL + endpoint and returns findings. All checks run concurrently via `Promise.allSettled`, so one check crashing doesn't block the others.
-3. **Presentation & Action (Output)** — `src/reportGenerator.js` normalizes raw results, segregates them by severity, and renders a colorized, aligned, wrapped terminal report (via `chalk`). JSON file output and CI/CD exit-code behavior are the remaining pieces of this stage (see Roadmap).
+3. **Presentation & Action (Output)** — `src/reportGenerator.js` normalizes raw results, segregates them by severity, and renders a colorized, aligned, wrapped terminal report (via `chalk`), plus a structured JSON report file (`writeJsonReport`) with a finalized summary schema (total results, confirmed findings, severity breakdown, untestable/tool-error counts). CI/CD exit-code behavior is the remaining piece of this stage.
 
 Building input parsing before the reporting layer was solid would have meant testing checks against noisy, unstructured output — so Stage 3 was prioritized before Stage 1.
 
@@ -69,7 +71,7 @@ node main.js <base-url> [path:method ...]
 node main.js http://localhost:5000 /books/v1:GET /users/v1/register:POST
 ```
 
-This runs all 8 checks concurrently against the given endpoints and prints a severity-grouped report to the terminal.
+This runs all 8 checks concurrently against the given endpoints, prints a severity-grouped report to the terminal, and writes a matching JSON report to disk.
 
 ---
 
@@ -85,6 +87,8 @@ Findings are grouped and color-coded by severity:
 Two additional non-severity banners:
 - ❓ **Untestable** — a check couldn't reach a conclusion (e.g. an endpoint returned 400 before the auth check could run)
 - ⚠️ **Tool Errors** — a check itself crashed (network failure, bad hostname, etc.)
+
+The terminal report and the JSON report (`meta.summary`) both surface: total results, confirmed findings, a per-severity breakdown, and separate untestable/tool-error counts.
 
 ---
 
