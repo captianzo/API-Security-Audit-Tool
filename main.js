@@ -9,6 +9,7 @@ import { checkForHttps } from './src/httpsCheck.js';
 import { generateReport } from './src/reportGenerator.js';
 import { displayResults } from './src/reportGenerator.js';
 import { writeJsonReport } from './src/reportGenerator.js';
+import { preflightCheck } from './src/preflightCheck.js';
 
 const inputUrl = process.argv[2];
 
@@ -22,7 +23,7 @@ pathMethod.push({
 if (!inputUrl) {
 	console.log('Please provide a URL');
 	console.log('Proper Syntax for running the tool\n node main.js url');
-	process.exit(1);
+	process.exit(2);
 }
 
 if (!process.argv[3]) {
@@ -35,6 +36,13 @@ pathMethod.push(...process.argv.slice(3).map(arg => {
 }))
 
 async function main(url) {
+
+	const preflightResult = await preflightCheck(url);
+	if (!preflightResult.exists) {
+		console.log(`Preflight check failed: ${preflightResult.message}`);
+		console.log(`Reason: ${preflightResult.reason}`);
+		process.exit(2);
+	}
 
 	const result = {
 		'HTTPS Check': checkForHttps(url),
@@ -52,7 +60,7 @@ async function main(url) {
 
 	const resolvedResult = await Promise.allSettled(resultPromises);
 
-	const {bySeverity, untestable, toolErrors} = generateReport(resolvedResult, resultCheckNames);
+	const { bySeverity, untestable, toolErrors } = generateReport(resolvedResult, resultCheckNames);
 	displayResults(bySeverity, untestable, toolErrors, inputUrl);
 
 	// used later for CI/CD exit-code logic
