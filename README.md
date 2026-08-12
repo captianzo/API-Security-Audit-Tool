@@ -39,11 +39,12 @@ Each finding includes a severity rating, the affected endpoint, a hand-written d
 
 ## Architecture — the three-stage pipeline
 
-The tool is built as three deliberately sequenced stages:
+The tool is built as three deliberately sequenced stages, with a preflight gate ahead of them:
 
+0. **Preflight (Gate)** — before any check runs, the tool confirms the target actually exists and responds (3000ms timeout, distinguishing a genuine network error from a slow/cold-starting target). This isn't a security check — it's a sanity gate that prevents the tool from running 8 checks against a dead or unreachable target and reporting misleading results. A failed preflight exits immediately with code `2`.
 1. **Ingestion (Input)** — currently a base URL + manually specified `path:method` pairs (every scan also automatically includes a base-URL `GET /` sanity check, tagged separately from user-specified endpoints). An OpenAPI/Swagger parser is planned but intentionally deferred until the check-correctness backlog is fully clear.
 2. **Execution (Engine)** — the 8 checks above. Fully independent of input source; each check just receives a URL + endpoint and returns findings. All checks run concurrently via `Promise.allSettled`, so one check crashing doesn't block the others.
-3. **Presentation & Action (Output)** — `src/reportGenerator.js` normalizes raw results, segregates them by severity, and renders a colorized, aligned, wrapped terminal report (via `chalk`), plus a structured JSON report file (`writeJsonReport`) with a finalized summary schema (total results, confirmed findings, severity breakdown, untestable/tool-error counts). CI/CD exit-code behavior is the remaining piece of this stage.
+3. **Presentation & Action (Output)** — `src/reportGenerator.js` normalizes raw results, segregates them by severity, and renders a colorized, aligned, wrapped terminal report (via `chalk`), plus a structured JSON report file (`writeJsonReport`) with a finalized summary schema (total results, confirmed findings, severity breakdown, untestable/tool-error counts). The tool also exits with a CI/CD-friendly status code based on findings severity — see below.
 
 Building input parsing before the reporting layer was solid would have meant testing checks against noisy, unstructured output — so Stage 3 was prioritized before Stage 1.
 
@@ -72,6 +73,20 @@ node main.js http://localhost:5000 /books/v1:GET /users/v1/register:POST
 ```
 
 This runs all 8 checks concurrently against the given endpoints, prints a severity-grouped report to the terminal, and writes a matching JSON report to disk.
+
+---
+
+## Exit codes (CI/CD)
+
+The tool is designed to be usable as a pipeline gate — a non-zero exit fails the build.
+
+| Code | Meaning |
+|---|---|
+| `0` | Scan ran successfully, no Critical or High findings |
+| `1` | Scan ran successfully, but found at least one Critical or High finding |
+| `2` | Tool couldn't run at all — no URL provided, or the preflight check couldn't confirm the target exists (timeout or network error) |
+
+`2` is deliberately distinct from `1`: it means the scan never produced a trustworthy result, as opposed to `1`, which means the scan completed and found something worth failing the build over.
 
 ---
 

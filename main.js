@@ -65,6 +65,10 @@ async function main(url) {
 
 	// used later for CI/CD exit-code logic
 	const jsonWriteResult = writeJsonReport(bySeverity, untestable, toolErrors, inputUrl);
+
+	if (bySeverity.Critical.length > 0 || bySeverity.High.length > 0){
+		process.exit(1);
+	}
 }
 
 main(inputUrl);
