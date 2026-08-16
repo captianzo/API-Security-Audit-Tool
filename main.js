@@ -4,7 +4,9 @@ import { checkCorsMisconfig } from './src/corsMisconfig.js';
 import { checkMethodExposure } from './src/httpMethodsExposure.js';
 import { checkMissingAuth } from './src/missingAuthDetection.js';
 import { requestHandler } from './src/rateLimitCheck.js';
-import { makeMultipleRequestsUsingQuerys } from './src/xssCheck.js';
+import { xssQueryCheck } from './src/xssCheck.js';
+import { xssHeaderCheck } from './src/xssCheck.js';
+import { xssCookieCheck } from './src/xssCheck.js';
 import { checkForHttps } from './src/httpsCheck.js';
 import { generateReport } from './src/reportGenerator.js';
 import { displayResults } from './src/reportGenerator.js';
@@ -52,7 +54,9 @@ async function main(url) {
 		'HTTP Methods Exposure': checkMethodExposure(url, pathMethod),
 		'Missing Authentication Detection': checkMissingAuth(url, pathMethod),
 		'Rate Limit Check': requestHandler(url, pathMethod),
-		'XSS Check': makeMultipleRequestsUsingQuerys(url, pathMethod)
+		'Reflected XSS in Query': xssQueryCheck(url, pathMethod),
+		'Reflected XSS in Header': xssHeaderCheck(url, pathMethod),
+		'Reflected XSS in Cookie': xssCookieCheck(url, pathMethod)
 	};
 
 	const resultCheckNames = Object.keys(result);

@@ -48,7 +48,7 @@ export async function preflightCheck(url) {
 				resolve({
 					exists: false,
 					reason: 'timeout',
-					message: `Request timed out after ${PREFLIGHT_TIMEOUT_MS}ms`
+					message: `Target did not respond within ${PREFLIGHT_TIMEOUT_MS}ms`
 				});
 			} else {
 				// genuine network-level failure (DNS, connection refused, TLS, etc.)
@@ -57,7 +57,7 @@ export async function preflightCheck(url) {
 					exists: false,
 					reason: 'network-error',
 					code: err.code,
-					message: err.message
+					message: 'Could not resolve or reach the target host'
 				});
 			}
 		});
