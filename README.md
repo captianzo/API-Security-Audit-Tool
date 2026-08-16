@@ -29,11 +29,11 @@ Every check here was written and verified against a live vulnerable target (VAmP
 | **HTTP Methods Exposure** | Unsafe methods advertised or actually executable (TRACE, PUT, DELETE, POST) |
 | **Missing Authentication Detection** | Endpoints that should require auth but don't |
 | **Rate Limit Check** | Endpoints with no, late, or overly permissive rate limiting |
-| **XSS Check** | Unsanitized query-parameter input reflected back in responses |
+| **XSS Check** | Unsanitized input reflected back in responses — tested across query parameters, request headers (User-Agent, Referer, X-Forwarded-For, etc.), and cookies (session/framework/tracking cookie names) |
 
 Each finding includes a severity rating, the affected endpoint, a hand-written description of the risk, and a remediation.
 
-**Known limitation:** the XSS check currently only tests query-parameter reflection — it does not yet cover path-parameter injection or JSON request-body reflection. This is a known, deliberately scoped gap, not an oversight.
+**Known limitation:** the XSS check covers query parameters, headers, and cookies, but does not yet cover path-parameter injection or JSON request-body reflection. Both are blocked on the same root cause — the tool's current input format has no way to mark which path segments are parameters vs literal route text, and no way to know a request body's shape per endpoint. This is a known, deliberately scoped gap tied to the still-deferred ingestion layer (OpenAPI/Swagger parsing), not an oversight.
 
 ---
 
