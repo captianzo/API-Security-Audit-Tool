@@ -1,4 +1,5 @@
 import { makeRequest } from "./requestHelper.js";
+import { collectKeys } from "./jsonUtils.js";
 
 function checkRoute(path) {
 	const sensitivePathKeywords = [
@@ -29,27 +30,6 @@ function checkRoute(path) {
 	}
 
 	return result;
-}
-
-function collectKeys(value, collectedKeys = []) {
-	if (value === null || value === undefined) {
-		return collectedKeys;
-	}
-
-	if (Array.isArray(value)) {
-		for (const element of value) {
-			collectKeys(element, collectedKeys);
-		}
-	}
-	else if (typeof value === 'object') {
-		const keys = Object.keys(value);
-		for (const key of keys) {
-			collectedKeys.push(key);
-			collectKeys(value[key], collectedKeys);
-		}
-	}
-
-	return collectedKeys;
 }
 
 function checkBody(body) {

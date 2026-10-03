@@ -1,0 +1,10 @@
+[
+  {
+    "test_id": "bola_test_books_001",
+    "endpoint_template": "/books/v1/{book_title}",
+    "http_method": "GET",
+    "parameters": {
+      "book_title": "bookTitle999"
+    }
+  }
+]
