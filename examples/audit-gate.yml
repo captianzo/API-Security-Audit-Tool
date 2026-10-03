@@ -1,0 +1,66 @@
+# TEMPLATE: this file is not active in the tool's own repo.
+# To use it, copy it to .github/workflows/audit-gate.yml in YOUR repository.
+# Steps marked "REPLACE" are specific to the VAmPI demo target.
+# As written it scans VAmPI (deliberately vulnerable), so it will fail every build.
+
+name: API Security Audit Gate
+
+# CHANGE: adjust these triggers to when you want the scan to run.
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  security-scan:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install tool dependencies
+        run: npm ci
+
+      # REPLACE: start your own app here, or delete this step
+      # if you scan an already-deployed URL.
+      - name: Start VAmPI target container
+        run: docker run -d -p 5000:5000 erev0s/vampi:latest
+
+      # REPLACE: wait until YOUR target answers (change the URL).
+      # Keep a polling step like this if your app starts inside the job.
+      - name: Wait for VAmPI to boot (Polling)
+        run: |
+          echo "Polling target to ensure it is answering requests..."
+          for i in {1..30}; do
+            if curl -s http://localhost:5000/ > /dev/null; then
+              echo "VAmPI is responding."
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Error: Target failed to boot within the timeout period."
+          exit 1
+
+      # REPLACE: remove this step (VAmPI-specific database seeding).
+      - name: Populate VAmPI data
+        run: curl -sf http://localhost:5000/createdb
+
+      # CHANGE: your base URL and the path:method pairs you want scanned.
+      # KEEP: this step's exit code is the gate.
+      - name: Run API Security Audit Tool
+        run: node main.js http://localhost:5000 /books/v1:GET
+
+      # KEEP: "if: always()" uploads the report even when the scan fails the build.
+      - name: Save JSON report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: api-security-report
+          path: reports/*.json

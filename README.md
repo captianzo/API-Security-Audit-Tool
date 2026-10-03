@@ -136,7 +136,25 @@ The tool is meant to work as a pipeline gate, so a non-zero exit fails the build
 - `--bola-config` is written with a space instead of an equals sign
 - `--bola-config` is set but `TOKEN_A` or `TOKEN_B` is missing or empty
 
-In CI, supply the two tokens as secrets in the environment instead of committing a `.env` file.
+In CI, supply the two tokens as secrets in the environment instead of committing a `.env` file. The next section shows how to wire the tool into GitHub Actions.
+
+## Using it as a pipeline gate (GitHub Actions)
+
+The tool's [exit codes](#exit-codes) are what make it a gate. GitHub Actions fails a step when its command exits non-zero, so the scan step alone fails the build on any Critical or High finding (`1`), or when the tool couldn't run (`2`). No extra gating logic is needed.
+
+`examples/audit-gate.yml` is a template workflow. It isn't active in this repo. To use it, copy it to `.github/workflows/audit-gate.yml` in your own repository and edit it.
+
+**What the template does:** it installs the tool, starts [VAmPI](https://github.com/erev0s/VAmPI) in a container as a demo target, waits until it answers, seeds its database, runs the scan, and uploads the JSON report as a build artifact even when the scan fails the build.
+
+**What you need to change.** As written, the template scans VAmPI, which is deliberately vulnerable, so it will fail every build. Before relying on it:
+
+- Replace the VAmPI start, wait and seed steps with whatever makes your own API reachable. A deployed staging URL stored as a repository variable is the simplest. If you start your app inside the job, keep a polling step before the scan so preflight doesn't hit a half-booted app.
+- Change the scan step to your URL and your `path:method` pairs.
+- Adjust the `on:` triggers to when you want it to run.
+
+**What to keep:** the scan step (its exit code is the gate) and the report upload with `if: always()`, so you get the JSON report even on a failed build.
+
+The BOLA check isn't part of the template. It needs two valid user tokens, which VAmPI can't provide as stable secrets. For your own API, add `TOKEN_A` and `TOKEN_B` as repository secrets and pass them to the scan step as environment variables.
 
 ## Reading the output
 
@@ -165,6 +183,9 @@ API-SECURITY-AUDIT-TOOL/
 │
 ├── docs/
 │   └── bola.md
+│
+├── examples/
+│   └── audit-gate.yml
 │
 ├── src/
 │   ├── bola.js
