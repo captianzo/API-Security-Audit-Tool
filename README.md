@@ -1,58 +1,54 @@
 # API Security Audit Tool
 
-A Node.js CLI tool that scans a live API for common security misconfigurations and produces a structured, severity-ranked vulnerability report — directly in your terminal, and as JSON for downstream tooling.
+A Node.js CLI that scans a live API for common security misconfigurations and gives you a severity-ranked report, both in the terminal and as a JSON file.
 
-Point it at a base URL and a list of endpoints, and it runs a set of independent security checks concurrently, then prints findings grouped by severity (Critical → Low), with a description and remediation for each.
+Point it at a base URL and a few endpoints and it runs a set of independent checks at the same time, then groups what it found by severity (Critical down to Low), with a description and a fix for each. There's also an optional BOLA/IDOR check that needs two user tokens.
 
 ```
 $ node main.js https://vampi-target.example.com /books/v1:GET /users/v1/register:POST
 ```
 
----
-
 ## Why this exists
 
-Most backend engineers don't think about how the systems they build actually get broken, and most security tooling treats the backend as a black box. This project sits at that intersection: it's a small, hand-built version of what tools like Burp Suite or Nuclei do, built from scratch to understand *why* each check exists — what the attacker is trying to do, what a vulnerable response actually looks like on the wire, and how to distinguish vulnerable from safe programmatically.
+Most backend engineers never think much about how the systems they build get broken, and most security tooling treats the backend as a black box. This project sits between the two. It's a small, hand-built take on what Burp Suite or Nuclei do, written from scratch so I'd understand why each check exists: what the attacker is after, what a vulnerable response looks like on the wire, and how to tell vulnerable from safe in code.
 
-Every check here was written and verified against a live vulnerable target (VAmPI), not just built against a spec.
+Every check was written and tested against a live vulnerable target (VAmPI), not just built from a spec.
 
----
-
-## Checks implemented
+## What it checks
 
 | Check | What it looks for |
 |---|---|
-| **HTTPS Check** | Whether the target is served over plain HTTP |
-| **Security Headers** | Missing/misconfigured CSP, X-Frame-Options, HSTS, X-Content-Type-Options |
-| **Verbose Error Responses** | Stack traces, internal paths, or framework details leaked in error bodies |
-| **CORS Misconfiguration** | Wildcard origins, reflected-origin + credentials (session hijack risk), false-selectivity allowlists |
-| **HTTP Methods Exposure** | Unsafe methods advertised or actually executable (TRACE, PUT, DELETE, POST) |
-| **Missing Authentication Detection** | Endpoints that should require auth but don't |
-| **Rate Limit Check** | Endpoints with no, late, or overly permissive rate limiting |
-| **XSS Check** | Unsanitized input reflected back in responses — tested across query parameters, request headers (User-Agent, Referer, X-Forwarded-For, etc.), and cookies (session/framework/tracking cookie names) |
+| HTTPS | The target being served over plain HTTP |
+| Security headers | Missing or weak CSP, X-Frame-Options, HSTS, X-Content-Type-Options |
+| Verbose errors | Stack traces, internal paths or framework details leaking in error bodies |
+| CORS | Wildcard origins, reflected origin plus credentials, allowlists that only look selective |
+| HTTP methods | Unsafe methods that are advertised or actually work (TRACE, PUT, DELETE, POST) |
+| Missing authentication | Endpoints that should require auth and don't |
+| Rate limiting | No rate limit, a late one, or one that's too generous |
+| XSS | Input reflected back unsanitized, tested through query parameters, request headers (User-Agent, Referer, X-Forwarded-For and so on) and cookies |
+| BOLA / IDOR | A valid user reading another user's object. Optional, see [below](#bola--idor-check-optional) |
 
-Each finding includes a severity rating, the affected endpoint, a hand-written description of the risk, and a remediation.
+Each finding comes with a severity, the affected endpoint, a description of the risk and a remediation.
 
-**Known limitation:** the XSS check covers query parameters, headers, and cookies, but does not yet cover path-parameter injection or JSON request-body reflection. Both are blocked on the same root cause — the tool's current input format has no way to mark which path segments are parameters vs literal route text, and no way to know a request body's shape per endpoint. This is a known, deliberately scoped gap tied to the still-deferred ingestion layer (OpenAPI/Swagger parsing), not an oversight.
+One gap to know about: the XSS check doesn't cover path parameters or JSON request bodies yet. Both come down to the same thing. The `path:method` input can't say which parts of a path are parameters, or what a body looks like. That has to wait for the OpenAPI/Swagger parser, which I've put off until the checks themselves are solid.
 
----
+## How it's put together
 
-## Architecture — the three-stage pipeline
+There are three stages, with a gate in front.
 
-The tool is built as three deliberately sequenced stages, with a preflight gate ahead of them:
+**Preflight.** Before anything runs, the tool checks that the target actually responds (3 second timeout, and it tells a real network error apart from a slow cold start). It isn't a security check. It just stops the tool from running everything against a dead host and reporting nonsense. A failed preflight exits with code `2`.
 
-0. **Preflight (Gate)** — before any check runs, the tool confirms the target actually exists and responds (3000ms timeout, distinguishing a genuine network error from a slow/cold-starting target). This isn't a security check — it's a sanity gate that prevents the tool from running 8 checks against a dead or unreachable target and reporting misleading results. A failed preflight exits immediately with code `2`.
-1. **Ingestion (Input)** — currently a base URL + manually specified `path:method` pairs (every scan also automatically includes a base-URL `GET /` sanity check, tagged separately from user-specified endpoints). An OpenAPI/Swagger parser is planned but intentionally deferred until the check-correctness backlog is fully clear.
-2. **Execution (Engine)** — the 8 checks above. Fully independent of input source; each check just receives a URL + endpoint and returns findings. All checks run concurrently via `Promise.allSettled`, so one check crashing doesn't block the others.
-3. **Presentation & Action (Output)** — `src/reportGenerator.js` normalizes raw results, segregates them by severity, and renders a colorized, aligned, wrapped terminal report (via `chalk`), plus a structured JSON report file (`writeJsonReport`) with a finalized summary schema (total results, confirmed findings, severity breakdown, untestable/tool-error counts). The tool also exits with a CI/CD-friendly status code based on findings severity — see below.
+**Input.** A base URL plus `path:method` pairs. Every scan also adds a `GET /` on the base URL as a sanity check, tagged separately from the endpoints you specified. The BOLA check takes its input differently, from a config file and two tokens, and never touches the `path:method` list. That way templated paths don't leak into the other checks.
 
-Building input parsing before the reporting layer was solid would have meant testing checks against noisy, unstructured output — so Stage 3 was prioritized before Stage 1.
+**Checks.** Each check takes the URL and its inputs and returns findings. They all run at once through `Promise.allSettled`, so one crashing doesn't stop the rest.
 
----
+**Output.** `src/reportGenerator.js` sorts the results by severity and prints a colored terminal report, then writes the same data as JSON into `reports/`. The exit code is set from the findings (see [Exit codes](#exit-codes)).
+
+I built the reporting layer before the input layer on purpose. Writing an input parser first would have meant testing the checks against messy, unstructured output.
 
 ## Getting started
 
-**Requirements:** Node.js (with ES modules support — this project uses `"type": "module"`)
+You need Node.js. The project uses ES modules (`"type": "module"`).
 
 ```bash
 git clone https://github.com/captianzo/API-Security-Audit-Tool.git
@@ -60,61 +56,147 @@ cd API-Security-Audit-Tool
 npm install
 ```
 
-**Usage:**
+Usage:
 
 ```bash
-node main.js <base-url> [path:method ...]
+node main.js <base-url> [path:method ...] [--bola-config=<file>]
 ```
 
-**Example:**
+The flag has to be written with an equals sign (`--bola-config=./file.json`). The space-separated form (`--bola-config ./file.json`) isn't supported, and the tool exits with code `2` and a message instead of guessing.
+
+For example:
 
 ```bash
 node main.js http://localhost:5000 /books/v1:GET /users/v1/register:POST
 ```
 
-This runs all 8 checks concurrently against the given endpoints, prints a severity-grouped report to the terminal, and writes a matching JSON report to disk.
+That runs the standard checks against those two endpoints, prints the report and saves a JSON copy. If you give no `path:method` pairs the tool says so and scans only the base URL with `GET`.
 
----
+## BOLA / IDOR check (optional)
 
-## Exit codes (CI/CD)
+BOLA (broken object level authorization, also called IDOR) is when an API checks that you're logged in but not whether the object you asked for is yours. Change an ID in the URL and you're reading someone else's data. It sits at number one on the OWASP API Top 10.
 
-The tool is designed to be usable as a pipeline gate — a non-zero exit fails the build.
+It's the one check that can't run from a URL alone. The tool has no way of knowing who owns what, so you give it two real users and an object one of them owns. Burp's Autorize and ZAP's access control testing work the same way. If you don't pass `--bola-config`, the check is skipped and shows up as one Untestable entry saying so.
+
+**Tokens.** Copy `.env.example` to `.env` and fill in two tokens:
+
+```
+TOKEN_A=<token of the user who owns the objects in your config>
+TOKEN_B=<token of a different valid user>
+```
+
+A is the owner and B plays the attacker. They're loaded from `.env` at startup, so they never appear on the command line or in the config file. A variable already set in your shell wins over `.env`, so if results look odd, check for a stale one. Tokens need to stay valid for the whole scan, so if yours expire quickly, generate them right before you run.
+
+**Config.** A JSON file listing the objects to test. Name it whatever you like and pass it with `--bola-config`. There's a template in `configs/bola-config.json.example`:
+
+```json
+[
+  {
+    "test_id": "bola_test_books_001",
+    "endpoint_template": "/books/v1/{book_title}",
+    "http_method": "GET",
+    "parameters": { "book_title": "bookTitle19" }
+  }
+]
+```
+
+`endpoint_template`, `http_method` and `parameters` are required. `parameters` holds a value for each `{placeholder}`, and it should be an object that TOKEN_A's user owns. `test_id` is optional and only labels the entry in the report. For POST, PUT, PATCH and DELETE you also have to add `"confirm_state_changing": true`, because the owner's request runs first and could really modify or delete the object. Without that flag the entry is skipped.
+
+Then run it:
+
+```bash
+node main.js http://localhost:5000 --bola-config=./configs/bola-config.json
+```
+
+**How it decides.** For each entry the tool sends the same request three times: as the owner (A), as the other user (B), and with no token (C). If B gets back what A got and C is turned away, that's a finding. The no-token request is there to rule out objects that were never protected at all. Anything the tool can't be sure about, like an expired token, a 404, or a 200 that looks different, goes to Untestable instead of being guessed at. The full verdict table, the matching rules and how confidence maps to severity are in [docs/bola.md](docs/bola.md).
+
+A few things worth knowing:
+
+- Every object in one config has to belong to the TOKEN_A user. To test objects owned by different users, run it once per owner.
+- The tool takes your word that TOKEN_A owns the objects. It can't check.
+- Tokens are sent as `Authorization: Bearer <token>`. Other schemes aren't supported yet.
+- I've only tested this against VAmPI. The finding path, the public-object case, the 401 and 404 handling, the input validation, the DELETE opt-in and the exit codes all behave as expected there. The 403 "properly gated" result, a 404 on the attacker request and the non-JSON comparison are written but haven't met a target that triggers them.
+
+## Exit codes
+
+The tool is meant to work as a pipeline gate, so a non-zero exit fails the build.
 
 | Code | Meaning |
 |---|---|
-| `0` | Scan ran successfully, no Critical or High findings |
-| `1` | Scan ran successfully, but found at least one Critical or High finding |
-| `2` | Tool couldn't run at all — no URL provided, or the preflight check couldn't confirm the target exists (timeout or network error) |
+| `0` | The scan ran and found no Critical or High issues |
+| `1` | The scan ran and found at least one Critical or High issue |
+| `2` | The tool couldn't run |
 
-`2` is deliberately distinct from `1`: it means the scan never produced a trustworthy result, as opposed to `1`, which means the scan completed and found something worth failing the build over.
+`2` is kept separate from `1` on purpose. It means the scan never produced a result you can trust, while `1` means it finished and found something worth failing on. You get a `2` when:
 
----
+- no URL was given
+- preflight couldn't confirm the target exists
+- `--bola-config` points at a file that can't be read
+- the config isn't valid JSON, or isn't an object or an array
+- `--bola-config` is written with a space instead of an equals sign
+- `--bola-config` is set but `TOKEN_A` or `TOKEN_B` is missing or empty
 
-## Sample output
+In CI, supply the two tokens as secrets in the environment instead of committing a `.env` file.
 
-Findings are grouped and color-coded by severity:
+## Reading the output
 
-- 🔴 **Critical** — e.g. reflected CORS origin + credentials enabled, no rate limiting at all
-- 🟠 **High** — e.g. wildcard CORS, confirmed-executable TRACE method
-- 🟡 **Medium** — e.g. TRACE advertised in `Allow` header
-- ⚪ **Low** — e.g. rate limiting that kicks in late
+Findings are grouped and colored by severity:
 
-Two additional non-severity banners:
-- ❓ **Untestable** — a check couldn't reach a conclusion (e.g. an endpoint returned 400 before the auth check could run)
-- ⚠️ **Tool Errors** — a check itself crashed (network failure, bad hostname, etc.)
+- 🔴 Critical: reflected CORS origin with credentials, no rate limiting at all, a confirmed BOLA finding
+- 🟠 High: wildcard CORS, a TRACE method that actually works
+- 🟡 Medium: TRACE advertised in the `Allow` header
+- ⚪ Low: rate limiting that only kicks in late
 
-The terminal report and the JSON report (`meta.summary`) both surface: total results, confirmed findings, a per-severity breakdown, and separate untestable/tool-error counts.
+Two more sections sit outside the severity scale:
 
----
+- ❓ Untestable: a check couldn't reach a conclusion, for example an endpoint answered 400 before the auth check could run, or a BOLA baseline request failed
+- ⚠️ Tool errors: a check itself broke (network failure, bad hostname and so on)
+
+The terminal report and the JSON file both include totals, confirmed findings, the per-severity counts, and the untestable and tool-error counts. The JSON also keeps extra detail the terminal leaves out, such as the status codes and comparison evidence behind a BOLA result.
+
+## Project layout
+
+```
+API-SECURITY-AUDIT-TOOL/
+│
+├── configs/
+│   ├── .gitkeep
+│   └── bola-config.json.example
+│
+├── docs/
+│   └── bola.md
+│
+├── src/
+│   ├── bola.js
+│   ├── corsMisconfig.js
+│   ├── errorVerbose.js
+│   ├── httpMethodsExposure.js
+│   ├── httpsCheck.js
+│   ├── jsonUtils.js
+│   ├── missingAuthDetection.js
+│   ├── missingHeaders.js
+│   ├── preflightCheck.js
+│   ├── rateLimitCheck.js
+│   ├── reportGenerator.js
+│   ├── requestHelper.js
+│   └── xssCheck.js
+│
+├── .env.example
+├── .gitignore
+├── main.js
+├── package-lock.json
+├── package.json
+└── README.md
+```
 
 ## Tech stack
 
-- Node.js (ES modules)
-- [`chalk`](https://www.npmjs.com/package/chalk) — terminal color/formatting for report output
-- No framework, no database — this is a CLI tool that makes raw HTTP requests and reasons over the raw responses
+- Node.js with ES modules
+- [`chalk`](https://www.npmjs.com/package/chalk) for terminal colors
+- [`dotenv`](https://www.npmjs.com/package/dotenv) for loading the tokens from `.env`
 
----
+No framework and no database. It makes raw HTTP requests and reasons about the raw responses.
 
-## Background / testing
+## Testing
 
-Checks have been iteratively verified against [VAmPI](https://github.com/erev0s/VAmPI), a deliberately vulnerable Flask API, using live `curl` traffic to confirm each finding (and each non-finding) is correct rather than assumed.
+Each check has been verified against [VAmPI](https://github.com/erev0s/VAmPI), a deliberately vulnerable Flask API, using live `curl` traffic to confirm every finding and every non-finding instead of assuming them. One VAmPI quirk matters for BOLA testing: its default tokens last only about 60 seconds, so generate them right before each run.

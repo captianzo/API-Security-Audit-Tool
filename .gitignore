@@ -1,3 +1,7 @@
 /node_modules
 /reports
 .env
+update_tokens.ps1
+configs/*
+!configs/.gitkeep
+!configs/*.example
