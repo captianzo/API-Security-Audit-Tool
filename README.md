@@ -5,7 +5,7 @@ A Node.js CLI that scans a live API for common security misconfigurations and gi
 Point it at a base URL and a few endpoints and it runs a set of independent checks at the same time, then groups what it found by severity (Critical down to Low), with a description and a fix for each. There's also an optional BOLA/IDOR check that needs two user tokens.
 
 ```
-$ node main.js https://vampi-target.example.com /books/v1:GET /users/v1/register:POST
+$ node main.js https://vampi-target.localhost:5000 /books/v1:GET /users/v1/register:POST
 ```
 
 ## Why this exists
